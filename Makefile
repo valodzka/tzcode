@@ -1,4 +1,4 @@
-# @(#)Makefile	7.94
+# @(#)Makefile	7.95
 
 # Change the line below for your time zone (after finding the zone you want in
 # the time zone files, or adding it to a time zone file).
@@ -269,8 +269,8 @@ TABDATA=	iso3166.tab zone.tab
 DATA=		$(YDATA) $(NDATA) $(SDATA) $(TABDATA) leapseconds yearistype.sh
 WEB_PAGES=	tz-art.htm tz-link.htm
 MISC=		usno1988 usno1989 usno1989a usno1995 usno1997 usno1998 \
-			itca.jpg $(WEB_PAGES) checktab.awk
-ENCHILADA=	$(DOCS) $(SOURCES) $(DATA) $(MISC) workman.sh
+			itca.jpg $(WEB_PAGES) checktab.awk workman.sh
+ENCHILADA=	$(DOCS) $(SOURCES) $(DATA) $(MISC)
 
 # And for the benefit of csh users on systems that assume the user
 # shell should be used to handle commands in Makefiles. . .
