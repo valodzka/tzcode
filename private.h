@@ -21,7 +21,7 @@
 
 #ifndef lint
 #ifndef NOID
-static char	privatehid[] = "@(#)private.h	7.50";
+static char	privatehid[] = "@(#)private.h	7.51";
 #endif /* !defined NOID */
 #endif /* !defined lint */
 
@@ -47,7 +47,7 @@ static char	privatehid[] = "@(#)private.h	7.50";
 #endif /* !defined HAVE_SETTIMEOFDAY */
 
 #ifndef HAVE_STRERROR
-#define HAVE_STRERROR		0
+#define HAVE_STRERROR		1
 #endif /* !defined HAVE_STRERROR */
 
 #ifndef HAVE_SYMLINK

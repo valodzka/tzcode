@@ -1,4 +1,4 @@
-# @(#)Makefile	7.77
+# @(#)Makefile	7.78
 
 # Change the line below for your time zone (after finding the zone you want in
 # the time zone files, or adding it to a time zone file).
@@ -95,7 +95,7 @@ LDLIBS=
 #  -DHAVE_SETTIMEOFDAY=1 if settimeofday has just 1 arg (SVR4)
 #  -DHAVE_SETTIMEOFDAY=2 if settimeofday uses 2nd arg (4.3BSD)
 #  -DHAVE_SETTIMEOFDAY=3 if settimeofday ignores 2nd arg (4.4BSD)
-#  -DHAVE_STRERROR=1 if `strerror' works
+#  -DHAVE_STRERROR=0 if your system lacks the strerror function
 #  -DHAVE_SYMLINK=0 if your system lacks the symlink function
 #  -DHAVE_SYS_WAIT_H=0 if your compiler lacks a "sys/wait.h"
 #  -DLOCALE_HOME=\"path\" if locales are in "path", not "/usr/lib/locale"
