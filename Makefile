@@ -1,4 +1,4 @@
-# @(#)Makefile	7.20
+# @(#)Makefile	7.21
 
 # Change the line below for your time zone (after finding the zone you want in
 # the time zone files, or adding it to a time zone file).
@@ -25,9 +25,9 @@ LOCALTIME=	Factory
 # Use the command
 #	make zonenames
 # to get a list of the values you can use for POSIXRULES.
-# If you want POSIX compatibility, use "US/Eastern".
+# If you want POSIX compatibility, use "America/New_York".
 
-POSIXRULES=	US/Eastern
+POSIXRULES=	America/New_York
 
 # Everything gets put in subdirectories of. . .
 
