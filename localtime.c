@@ -1,16 +1,11 @@
 /*
-** XXX--have mktime et al. do the right thing when time_t is exotic
-** (for example, double).
-*/
-
-/*
 ** This file is in the public domain, so clarified as of
 ** 1996-06-05 by Arthur David Olson (arthur_david_olson@nih.gov).
 */
 
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)localtime.c	7.86";
+static char	elsieid[] = "@(#)localtime.c	7.89";
 #endif /* !defined NOID */
 #endif /* !defined lint */
 
@@ -1061,7 +1056,7 @@ struct tm * const	tmp;
 		for (i = 1; i < sp->timecnt; ++i)
 			if (t < sp->ats[i])
 				break;
-		i = sp->types[i - 1];
+		i = (int) sp->types[i - 1];
 	}
 	ttisp = &sp->ttis[i];
 	/*
@@ -1092,11 +1087,11 @@ const time_t * const	timep;
 */
 
 struct tm *
-localtime_r(timep, tm)
+localtime_r(timep, tmp)
 const time_t * const	timep;
-struct tm *		tm;
+struct tm *		tmp;
 {
-	return localsub(timep, 0L, tm);
+	return localsub(timep, 0L, tmp);
 }
 
 /*
@@ -1154,11 +1149,11 @@ const time_t * const	timep;
 */
 
 struct tm *
-gmtime_r(timep, tm)
+gmtime_r(timep, tmp)
 const time_t * const	timep;
-struct tm *		tm;
+struct tm *		tmp;
 {
-	return gmtsub(timep, 0L, tm);
+	return gmtsub(timep, 0L, tmp);
 }
 
 #ifdef STD_INSPIRED
@@ -1338,9 +1333,9 @@ ctime_r(timep, buf)
 const time_t * const	timep;
 char *			buf;
 {
-	struct tm	tm;
+	struct tm	mytm;
 
-	return asctime_r(localtime_r(timep, &tm), buf);
+	return asctime_r(localtime_r(timep, &mytm), buf);
 }
 
 /*
@@ -1441,10 +1436,11 @@ const int		do_norm_secs;
 {
 	register const struct state *	sp;
 	register int			dir;
-	register int			bits;
 	register int			i, j;
 	register int			saved_seconds;
 	register long			li;
+	register time_t			lo;
+	register time_t			hi;
 	long				y;
 	time_t				newt;
 	time_t				t;
@@ -1518,28 +1514,49 @@ const int		do_norm_secs;
 		yourtm.tm_sec = 0;
 	}
 	/*
-	** Divide the search space in half
-	** (this works whether time_t is signed or unsigned).
+	** Do a binary search (this works whatever time_t's type is).
 	*/
-	bits = TYPE_BIT(time_t) - 1;
-	/*
-	** If time_t is signed, then 0 is just above the median,
-	** assuming two's complement arithmetic.
-	** If time_t is unsigned, then (1 << bits) is just above the median.
-	*/
-	t = TYPE_SIGNED(time_t) ? 0 : (((unsigned long) 1) << bits);
+	if (!TYPE_SIGNED(time_t)) {
+		lo = 0;
+		hi = lo - 1;
+	} else if (!TYPE_INTEGRAL(time_t)) {
+		if (sizeof(time_t) > sizeof(float))
+			hi = (time_t) DBL_MAX;
+		else	hi = (time_t) FLT_MAX;
+		lo = -hi;
+	} else {
+		lo = 1;
+		for (i = 0; i < (int) TYPE_BIT(time_t) - 1; ++i)
+			lo *= 2;
+		hi = -(lo + 1);
+	}
 	for ( ; ; ) {
-		if ((*funcp)(&t, offset, &mytm) == NULL)
-			return WRONG;	/* XXX probably wrong */
-		dir = tmcomp(&mytm, &yourtm);
+		t = lo / 2 + hi / 2;
+		if (t < lo)
+			t = lo;
+		else if (t > hi)
+			t = hi;
+		if ((*funcp)(&t, offset, &mytm) == NULL) {
+			/*
+			** Assume that t is too extreme to be represented in
+			** a struct tm; arrange things so that it is less
+			** extreme on the next pass.
+			*/
+			dir = (t > 0) ? 1 : -1;
+		} else	dir = tmcomp(&mytm, &yourtm);
 		if (dir != 0) {
-			if (bits-- < 0)
+			if (t == lo) {
+				++t;
+				++lo;
+			} else if (t == hi) {
+				--t;
+				--hi;
+			}
+			if (lo > hi)
 				return WRONG;
-			if (bits < 0)
-				--t; /* may be needed if new t is minimal */
-			else if (dir > 0)
-				t -= ((long) 1) << bits;
-			else	t += ((long) 1) << bits;
+			if (dir > 0)
+				hi = t;
+			else	lo = t;
 			continue;
 		}
 		if (yourtm.tm_isdst < 0 || mytm.tm_isdst == yourtm.tm_isdst)
@@ -1569,7 +1586,7 @@ const int		do_norm_secs;
 				newt = t + sp->ttis[j].tt_gmtoff -
 					sp->ttis[i].tt_gmtoff;
 				if ((*funcp)(&newt, offset, &mytm) == NULL)
-					return WRONG;	/* XXX probably wrong */
+					continue;
 				if (tmcomp(&mytm, &yourtm) != 0)
 					continue;
 				if (mytm.tm_isdst != yourtm.tm_isdst)
