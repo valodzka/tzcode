@@ -1,4 +1,4 @@
-static char	elsieid[] = "@(#)zdump.c	7.39";
+static char	elsieid[] = "@(#)zdump.c	7.40";
 
 /*
 ** This code has been made independent of the rest of the time
@@ -321,7 +321,7 @@ struct tm *	oldp;
 		return -delta(oldp, newp);
 	result = 0;
 	for (tmy = oldp->tm_year; tmy < newp->tm_year; ++tmy)
-		result += DAYSPERNYEAR + isleap(tmy + TM_YEAR_BASE);
+		result += DAYSPERNYEAR + isleap(tmy + (long) TM_YEAR_BASE);
 	result += newp->tm_yday - oldp->tm_yday;
 	result *= HOURSPERDAY;
 	result += newp->tm_hour - oldp->tm_hour;
