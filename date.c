@@ -1,6 +1,6 @@
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)date.c	7.32";
+static char	elsieid[] = "@(#)date.c	7.33";
 /*
 ** Modified from the UCB version with the SCCS ID appearing below.
 */
@@ -119,7 +119,7 @@ char *		argv[];
 	(void) setlocale(LC_TIME, "");
 	(void) time(&now);
 	format = value = NULL;
-	while ((ch = getopt(argc, argv, "ucnd:t:a:")) != EOF) {
+	while ((ch = getopt(argc, argv, "ucnd:t:a:")) != EOF && ch != -1) {
 		switch (ch) {
 		default:
 			usage();
