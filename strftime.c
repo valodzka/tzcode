@@ -1,6 +1,6 @@
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)strftime.c	7.18";
+static char	elsieid[] = "@(#)strftime.c	7.19";
 /*
 ** Based on the UCB version with the ID appearing below.
 ** This is ANSIish only when time is treated identically in all locales and
@@ -282,8 +282,37 @@ label:
 
 					i = (t->tm_yday + 10 - (t->tm_wday ?
 						(t->tm_wday - 1) : 6)) / 7;
-					pt = _conv((i == 0) ? 53 : i,
-						"%02d", pt, ptlim);
+					if (i == 0) {
+						/*
+						** What day of the week does
+						** January 1 fall on?
+						*/
+						i = t->tm_wday -
+							(t->tm_yday - 1);
+						/*
+						** Fri Jan 1: 53
+						** Sun Jan 1: 52
+						** Sat Jan 1: 53 if previous
+						** 		 year a leap
+						**		 year, else 52
+						*/
+						if (i == TM_FRIDAY)
+							i = 53;
+						else if (i == TM_SUNDAY)
+							i = 52;
+						else	i = isleap(t->tm_year +
+								TM_YEAR_BASE) ?
+								53 : 52;
+#ifdef XPG4_1994_04_09
+						/*
+						** As of 4/9/94, though,
+						** XPG4 calls for 53
+						** unconditionally.
+						*/
+						i = 53;
+#endif /* defined XPG4_1994_04_09 */
+					}
+					pt = _conv(i, "%02d", pt, ptlim);
 				}
 				continue;
 			case 'v':

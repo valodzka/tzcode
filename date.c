@@ -1,6 +1,6 @@
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)date.c	7.6";
+static char	elsieid[] = "@(#)date.c	7.7";
 /*
 ** Modified from the UCB version with the SCCS ID appearing below.
 */
@@ -281,7 +281,7 @@ char *	argv[];
 
 	/* gcc -Wall pacifier */
 	for ( ; ; )
-		;
+		continue;
 }
 
 static void

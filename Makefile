@@ -1,4 +1,4 @@
-# @(#)Makefile	7.23
+# @(#)Makefile	7.28
 
 # Change the line below for your time zone (after finding the zone you want in
 # the time zone files, or adding it to a time zone file).
@@ -174,6 +174,17 @@ YEARISTYPE=	./yearistype
 # which claims to test C and Posix conformance.  If you want to pass PCTS, add
 #	-DPCTS
 # to the end of the "CFLAGS=" line.
+#
+# If you want strict compliance with XPG4 as of April 9, 1994, add
+#	-DXPG4_1994_04_09
+# to the end of the "CFLAGS=" line.  This causes "strftime" to always return
+# 53 as a week number (rather than 52 or 53) for those days in January that
+# before the first Monday in January when a "%V" format is used and January 1
+# falls on a Friday, Saturday, or Sunday.
+#
+# If your compiler supports the `long double' type, add
+#	-DHAVE_LONG_DOUBLE
+# to the end of the "CFLAGS=" line.
 
 CFLAGS=
 
@@ -181,16 +192,20 @@ CFLAGS=
 
 CC=		cc -DTZDIR=\"$(TZDIR)\"
 
-TZCSRCS=	zic.c localtime.c asctime.c scheck.c ialloc.c emkdir.c getopt.c
-TZCOBJS=	zic.o localtime.o asctime.o scheck.o ialloc.o emkdir.o getopt.o
-TZDSRCS=	zdump.c localtime.c asctime.c ialloc.c getopt.c
-TZDOBJS=	zdump.o localtime.o asctime.o ialloc.o getopt.o
-DATESRCS=	date.c localtime.c getopt.c logwtmp.c strftime.c
-DATEOBJS=	date.o localtime.o getopt.o logwtmp.o strftime.o asctime.o
+TZCSRCS= \
+	zic.c localtime.c asctime.c scheck.c ialloc.c emkdir.c getopt.c optind.c
+TZCOBJS= \
+	zic.o localtime.o asctime.o scheck.o ialloc.o emkdir.o getopt.o optind.o
+TZDSRCS=	zdump.c localtime.c asctime.c ialloc.c getopt.c optind.c
+TZDOBJS=	zdump.o localtime.o asctime.o ialloc.o getopt.o optind.o
+DATESRCS= \
+	date.c localtime.c getopt.c optind.c logwtmp.c strftime.c asctime.c
+DATEOBJS= \
+	date.o localtime.o getopt.o optind.o logwtmp.o strftime.o asctime.o
 LIBSRCS=	localtime.c asctime.c difftime.c
 LIBOBJS=	localtime.o asctime.o difftime.o
 HEADERS=	tzfile.h private.h
-NONLIBSRCS=	zic.c zdump.c scheck.c ialloc.c emkdir.c getopt.c
+NONLIBSRCS=	zic.c zdump.c scheck.c ialloc.c emkdir.c getopt.c optind.c
 NEWUCBSRCS=	date.c logwtmp.c strftime.c
 SOURCES=	$(HEADERS) $(LIBSRCS) $(NONLIBSRCS) $(NEWUCBSRCS)
 MANS=		newctime.3 newtzset.3 time2posix.3 tzfile.5 zic.8 zdump.8
@@ -275,13 +290,13 @@ $(TZLIB):	$(LIBOBJS)
 		if [ -x /usr/ucb/ranlib -o -x /usr/bin/ranlib ] ; \
 			then ranlib $@ ; fi
 
-# We use the system's logwtmp and strftime in preference to ours if available.
+# We use the system's getopt and logwtmp in preference to ours if available.
 
 date:		$(DATEOBJS)
-		ar r ,lib.a logwtmp.o strftime.o
+		ar r ,lib.a getopt.o optind.o logwtmp.o
 		if [ -x /usr/ucb/ranlib -o -x /usr/bin/ranlib ] ; \
 			then ranlib ,lib.a ; fi
-		$(CC) $(CFLAGS) date.o localtime.o asctime.o getopt.o \
+		$(CC) $(CFLAGS) date.o localtime.o asctime.o strftime.o \
 			-lc ,lib.a -o $@
 		rm -f ,lib.a
 

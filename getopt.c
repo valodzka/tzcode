@@ -1,6 +1,6 @@
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)getopt.c	7.3";
+static char	elsieid[] = "@(#)getopt.c	7.4";
 /* Modified from the UCB version with the SCCS ID appearing below. */
 #endif /* !defined NOID */
 #endif /* !defined lint */
@@ -30,10 +30,10 @@ static char sccsid[] = "@(#)getopt.c	4.5 (Berkeley) 11/24/87";
 /*
  * get option letter from argument vector
  */
-int	opterr = 1,		/* if error message should be printed */
-	optind = 1,		/* index into parent argv vector */
-	optopt;			/* character checked for validity */
-char	*optarg;		/* argument associated with option */
+extern int	opterr;		/* if error message should be printed */
+extern int	optind; 	/* index into parent argv vector */
+extern int	optopt;		/* character checked for validity */
+extern char *	optarg;		/* argument associated with option */
 
 #define BADCH	(int)'?'
 #define EMSG	""
