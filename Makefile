@@ -1,4 +1,4 @@
-# @(#)Makefile	7.39
+# @(#)Makefile	7.40
 
 # Change the line below for your time zone (after finding the zone you want in
 # the time zone files, or adding it to a time zone file).
@@ -213,8 +213,8 @@ NDATA=		systemv
 SDATA=		solar87 solar88 solar89
 TDATA=		$(YDATA) $(NDATA) $(SDATA)
 DATA=		$(YDATA) $(NDATA) $(SDATA) leapseconds yearistype.sh
-USNO=		usno1988 usno1989 usno1989a
-ENCHILADA=	$(DOCS) $(SOURCES) $(DATA) $(USNO)
+MISC=		usno1988 usno1989 usno1989a Music
+ENCHILADA=	$(DOCS) $(SOURCES) $(DATA) $(MISC)
 
 # And for the benefit of csh users on systems that assume the user
 # shell should be used to handle commands in Makefiles. . .
@@ -296,7 +296,7 @@ names:
 		@echo $(ENCHILADA)
 
 public:		$(ENCHILADA)
-		tar cf - $(DOCS) $(SOURCES) $(USNO) | gzip -9 > tzcode.tar.gz
+		tar cf - $(DOCS) $(SOURCES) $(MISC) | gzip -9 > tzcode.tar.gz
 		tar cf - $(DATA) | gzip -9 > tzdata.tar.gz
 
 zonenames:	$(TDATA)
