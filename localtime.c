@@ -5,7 +5,7 @@
 
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)localtime.c	7.66";
+static char	elsieid[] = "@(#)localtime.c	7.68";
 #endif /* !defined NOID */
 #endif /* !defined lint */
 
@@ -734,6 +734,20 @@ const int			lastditch;
 			if (name == NULL)
 				return -1;
 		} else	dstoffset = stdoffset - SECSPERHOUR;
+#if 0
+		/*
+		** XXX--get justification for U.S.-centricism
+		** before adopting the following code;
+		** also get to document the behavior.
+		*/
+		if (*name == '\0' && load_result != 0)
+			/*
+			** Default to US rules as of 1999-08-17 if TZ has
+			** no rules and we can't load the default rules,
+			*/
+			name = ",M4.1.0,M10.5.0";
+
+#endif
 		if (*name == ',' || *name == ';') {
 			struct rule	start;
 			struct rule	end;
@@ -795,8 +809,6 @@ const int			lastditch;
 			register int	j;
 
 			if (*name != '\0')
-				return -1;
-			if (load_result != 0)
 				return -1;
 			/*
 			** Initial values of theirstdoffset and theirdstoffset.
