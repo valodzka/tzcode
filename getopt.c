@@ -1,6 +1,6 @@
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)getopt.c	7.4";
+static char	elsieid[] = "@(#)getopt.c	7.5";
 /* Modified from the UCB version with the SCCS ID appearing below. */
 #endif /* !defined NOID */
 #endif /* !defined lint */
@@ -36,7 +36,7 @@ extern int	optopt;		/* character checked for validity */
 extern char *	optarg;		/* argument associated with option */
 
 #define BADCH	(int)'?'
-#define EMSG	""
+static char	EMSG[1];
 #define tell(s)	{ \
 	if (opterr) { \
 		(void) fputs(*nargv, stderr); \
@@ -47,6 +47,8 @@ extern char *	optarg;		/* argument associated with option */
 	return(BADCH); \
 }
 
+extern char *	strchr();
+
 int
 getopt(nargc, nargv, ostr)
 	int	nargc;
@@ -54,7 +56,6 @@ getopt(nargc, nargv, ostr)
 {
 	static char	*place = EMSG;		/* option letter processing */
 	register char	*oli;			/* option letter list index */
-	char	*strchr();
 
 	if (!*place) {				/* update scanning pointer */
 		if (optind >= nargc || *(place = nargv[optind]) != '-' ||

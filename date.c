@@ -1,6 +1,6 @@
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)date.c	7.7";
+static char	elsieid[] = "@(#)date.c	7.13";
 /*
 ** Modified from the UCB version with the SCCS ID appearing below.
 */
@@ -65,28 +65,29 @@ extern char *		tzname[2];
 
 static int		retval = EXIT_SUCCESS;
 
-static void		checkfinal();
-static int		comptm();
-static time_t		convert();
-static void		display();
-static void		dogmt();
-static void		errensure();
-static void		iffy();
-static char *		nondigit();
-static void		oops();
-static void		reset();
-static void		timeout();
-static void		usage();
-static void		wildinput();
+static void		checkfinal P((const char *, int, time_t, time_t));
+static int		comptm P((const struct tm *, const struct tm *));
+static time_t		convert P((const char *, int, time_t));
+static void		display P((const char *));
+static void		dogmt P((void));
+static void		errensure P((void));
+static void		iffy P((time_t, time_t, const char *, const char *));
+int			main P((int, char**));
+static const char *	nondigit P((const char *));
+static void		oops P((const char *));
+static void		reset P((time_t, int));
+static void		timeout P((FILE *, const char *, const struct tm *));
+static void		usage P((void));
+static void		wildinput P((const char *, const char *, const char *));
 
 int
 main(argc, argv)
-int	argc;
-char *	argv[];
+const int	argc;
+char *		argv[];
 {
-	register char *		format;
-	register char *		value;
-	register char *		cp;
+	register const char *	format;
+	register const char *	value;
+	register const char *	cp;
 	register int		ch;
 	register int		dousg;
 	register int		aflag = 0;
@@ -99,6 +100,11 @@ char *	argv[];
 	time_t			now;
 	time_t			t;
 
+	INITIALIZE(dousg);
+	INITIALIZE(minuteswest);
+	INITIALIZE(dsttime);
+	INITIALIZE(adjust);
+	INITIALIZE(t);
 	(void) time(&now);
 	format = value = NULL;
 	while ((ch = getopt(argc, argv, "ucnd:t:a:")) != EOF) {
@@ -287,13 +293,28 @@ char *	argv[];
 static void
 dogmt()
 {
-	register char **	saveenv;
-	static char *		fakeenv[] = { "TZ=GMT0", NULL };
+	static char **	fakeenv;
 
-	saveenv = environ;
-	environ = fakeenv;
-	tzset();
-	environ = saveenv;
+	if (fakeenv == NULL) {
+		register int	from, to, n;
+
+		for (n = 0;  environ[n] != NULL;  ++n)
+			continue;
+		fakeenv = (char **) malloc((alloc_size_T) (n + 2) *
+			sizeof *fakeenv);
+		if (fakeenv == NULL) {
+			(void) perror("Memory exhausted");
+			errensure();
+			(void) exit(retval);
+		}
+		to = 0;
+		fakeenv[to++] = "TZ=GMT0";
+		for (from = 1; environ[from] != NULL; ++from)
+			if (strncmp(environ[from], "TZ=", 3) != 0)
+				fakeenv[to++] = environ[from];
+		fakeenv[to] = NULL;
+		environ = fakeenv;
+	}
 }
 
 #ifdef OLD_TIME
@@ -310,8 +331,8 @@ dogmt()
 /*ARGSUSED*/
 static void
 reset(newt, nflag)
-time_t	newt;
-int	nflag;
+const time_t	newt;
+const int	nflag;
 {
 	register int		fid;
 	time_t			oldt;
@@ -377,10 +398,10 @@ int	nflag;
 #endif /* !defined TSP_SETDATE */
 static void
 reset(newt, nflag)
-time_t	newt;
-int	nflag;
+const time_t	newt;
+const int	nflag;
 {
-	register char *		username;
+	register const char *	username;
 	static struct timeval	tv;	/* static so tv_usec is 0 */
 
 #ifdef EBUG
@@ -410,9 +431,9 @@ int	nflag;
 
 static void
 wildinput(item, value, reason)
-char *	item;
-char *	value;
-char *	reason;
+const char * const	item;
+const char * const	value;
+const char * const	reason;
 {
 	(void) fprintf(stderr, "date: error: bad command line %s \"%s\", %s\n",
 		item, value, reason);
@@ -420,15 +441,15 @@ char *	reason;
 }
 
 static void
-errensure()
+errensure P((void))
 {
 	if (retval == EXIT_SUCCESS)
 		retval = EXIT_FAILURE;
 }
 
-static char *
+static const char *
 nondigit(cp)
-register char *	cp;
+register const char *	cp;
 {
 	while (isdigit(*cp))
 		++cp;
@@ -436,7 +457,7 @@ register char *	cp;
 }
 
 static void
-usage()
+usage P((void))
 {
 	(void) fprintf(stderr, "date: usage is date ");
 	(void) fprintf(stderr, "[-u] ");
@@ -453,7 +474,7 @@ usage()
 
 static void
 oops(string)
-char *	string;
+const char * const	string;
 {
 	(void) perror(string);
 	errensure();
@@ -462,7 +483,7 @@ char *	string;
 
 static void
 display(format)
-char *	format;
+const char * const	format;
 {
 	struct tm	tm;
 	time_t		now;
@@ -491,17 +512,18 @@ extern size_t	strftime();
 
 static void
 timeout(fp, format, tmp)
-FILE *		fp;
-char *		format;
-struct tm *	tmp;
+FILE * const		fp;
+const char * const	format;
+const struct tm * const	tmp;
 {
 	char *	cp;
-	size_t	result, size;
+	size_t	result;
+	size_t	size;
 
 	if (*format == '\0')
 		return;
 	size = INCR;
-	cp = malloc((alloc_size_t) size);
+	cp = malloc((alloc_size_T) size);
 	for ( ; ; ) {
 		if (cp == NULL) {
 			(void) fprintf(stderr,
@@ -513,7 +535,7 @@ struct tm *	tmp;
 		if (result != 0)
 			break;
 		size += INCR;
-		cp = realloc(cp, (alloc_size_t) size);
+		cp = realloc(cp, (alloc_size_T) size);
 	}
 	(void) fwrite(cp, 1, result, fp);
 	free(cp);
@@ -521,8 +543,8 @@ struct tm *	tmp;
 
 static int
 comptm(atmp, btmp)
-register struct tm * atmp;
-register struct tm * btmp;
+register const struct tm * const atmp;
+register const struct tm * const btmp;
 {
 	register int	result;
 
@@ -544,11 +566,11 @@ register struct tm * btmp;
 
 static time_t
 convert(value, dousg, t)
-register char *	value;
-int		dousg;
-time_t		t;
+register const char * const	value;
+const int			dousg;
+const time_t			t;
 {
-	register char *	cp;
+	register const char *	cp;
 	register char *	dotp;
 	register int	cent, year_in_cent, month, hour, day, mins, secs;
 	struct tm	tm, outtm;
@@ -633,7 +655,7 @@ time_t		t;
 }
 
 /*
-** Code from here on out is either as provided by UCB
+** Code from here on out is either based on code provided by UCB
 ** or is only called just before the program exits.
 */
 
@@ -643,10 +665,10 @@ time_t		t;
 
 static void
 checkfinal(value, didusg, t, oldnow)
-char *	value;
-int	didusg;
-time_t	t;
-time_t	oldnow;
+const char * const	value;
+const int		didusg;
+const time_t		t;
+const time_t		oldnow;
 {
 	time_t		othert;
 	struct tm	tm;
@@ -706,10 +728,10 @@ time_t	oldnow;
 
 static void
 iffy(thist, thatt, value, reason)
-time_t	thist;
-time_t	thatt;
-char *	value;
-char *	reason;
+const time_t		thist;
+const time_t		thatt;
+const char * const	value;
+const char * const	reason;
 {
 	struct tm	tm;
 
@@ -747,7 +769,9 @@ char *	reason;
 #define WAITACK		2	/* seconds */
 #define WAITDATEACK	5	/* seconds */
 
+#ifndef errno
 extern	int errno;
+#endif /* !defined errno */
 /*
  * Set the date in the machines controlled by timedaemons
  * by communicating the new date to the local timedaemon.

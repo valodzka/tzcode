@@ -1,6 +1,6 @@
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)localtime.c	7.19";
+static char	elsieid[] = "@(#)localtime.c	7.26";
 #endif /* !defined NOID */
 #endif /* !defined lint */
 
@@ -48,7 +48,9 @@ static char	elsieid[] = "@(#)localtime.c	7.19";
 #define WILDABBR	"   "
 #endif /* !defined WILDABBR */
 
-static const char GMT[] = "GMT";
+static char		wildabbr[] = "WILDABBR";
+
+static const char	gmt[] = "GMT";
 
 struct ttinfo {				/* time type information */
 	long		tt_gmtoff;	/* GMT offset in seconds */
@@ -79,7 +81,7 @@ struct state {
 	time_t		ats[TZ_MAX_TIMES];
 	unsigned char	types[TZ_MAX_TIMES];
 	struct ttinfo	ttis[TZ_MAX_TYPES];
-	char		chars[BIGGEST(BIGGEST(TZ_MAX_CHARS + 1, sizeof GMT),
+	char		chars[BIGGEST(BIGGEST(TZ_MAX_CHARS + 1, sizeof gmt),
 				(2 * (MY_TZNAME_MAX + 1)))];
 	struct lsinfo	lsis[TZ_MAX_LEAPS];
 };
@@ -142,13 +144,28 @@ static struct state	gmtmem;
 #define gmtptr		(&gmtmem)
 #endif /* State Farm */
 
+#ifndef TZ_STRLEN_MAX
+#define TZ_STRLEN_MAX 255
+#endif
+
+static char		lcl_TZname[TZ_STRLEN_MAX + 1];
 static int		lcl_is_set;
 static int		gmt_is_set;
 
 char *			tzname[2] = {
-	WILDABBR,
-	WILDABBR
+	wildabbr,
+	wildabbr
 };
+
+/*
+** Section 4.12.3 of X3.159-1989 requires that
+**	Except for the strftime function, these functions [asctime,
+**	ctime, gmtime, localtime] return values in one of two static
+**	objects: a broken-down time structure and an array of char.
+** Thanks to Paul Eggert (eggert@twinsun.com) for noting this.
+*/
+
+static struct tm	tm;
 
 #ifdef USG_COMPAT
 time_t			timezone = 0;
@@ -173,13 +190,13 @@ const char * const	codep;
 }
 
 static void
-settzname()
+settzname P((void))
 {
 	register const struct state * const	sp = lclptr;
 	register int				i;
 
-	tzname[0] = WILDABBR;
-	tzname[1] = WILDABBR;
+	tzname[0] = wildabbr;
+	tzname[1] = wildabbr;
 #ifdef USG_COMPAT
 	daylight = 0;
 	timezone = 0;
@@ -189,7 +206,7 @@ settzname()
 #endif /* defined ALTZONE */
 #ifdef ALL_STATE
 	if (sp == NULL) {
-		tzname[0] = tzname[1] = GMT;
+		tzname[0] = tzname[1] = gmt;
 		return;
 	}
 #endif /* defined ALL_STATE */
@@ -414,10 +431,16 @@ long * const		secsp;
 {
 	int	num;
 
-	strp = getnum(strp, &num, 0, HOURSPERDAY);
+	/*
+	** `HOURSPERDAY * DAYSPERWEEK - 1' allows quasi-Posix rules like
+	** "M10.4.6/26", which does not conform to Posix,
+	** but which specifies the equivalent of
+	** ``02:00 on the first Sunday on or after 23 Oct''.
+	*/
+	strp = getnum(strp, &num, 0, HOURSPERDAY * DAYSPERWEEK - 1);
 	if (strp == NULL)
 		return NULL;
-	*secsp = num * SECSPERHOUR;
+	*secsp = num * (long) SECSPERHOUR;
 	if (*strp == ':') {
 		++strp;
 		strp = getnum(strp, &num, 0, MINSPERHOUR - 1);
@@ -426,7 +449,8 @@ long * const		secsp;
 		*secsp += num * SECSPERMIN;
 		if (*strp == ':') {
 			++strp;
-			strp = getnum(strp, &num, 0, SECSPERMIN - 1);
+			/* `SECSPERMIN' allows for leap seconds.  */
+			strp = getnum(strp, &num, 0, SECSPERMIN);
 			if (strp == NULL)
 				return NULL;
 			*secsp += num;
@@ -536,6 +560,7 @@ const long				offset;
 	register int	i;
 	int		d, m1, yy0, yy1, yy2, dow;
 
+	INITIALIZE(value);
 	leapyear = isleap(year);
 	switch (rulep->r_type) {
 
@@ -626,8 +651,8 @@ const int			lastditch;
 {
 	const char *			stdname;
 	const char *			dstname;
-	int				stdlen;
-	int				dstlen;
+	size_t				stdlen;
+	size_t				dstlen;
 	long				stdoffset;
 	long				dstoffset;
 	register time_t *		atp;
@@ -635,6 +660,7 @@ const int			lastditch;
 	register char *			cp;
 	register int			load_result;
 
+	INITIALIZE(dstname);
 	stdname = name;
 	if (lastditch) {
 		stdlen = strlen(name);	/* length of standard zone name */
@@ -826,17 +852,24 @@ static void
 gmtload(sp)
 struct state * const	sp;
 {
-	if (tzload(GMT, sp) != 0)
-		(void) tzparse(GMT, sp, TRUE);
+	if (tzload(gmt, sp) != 0)
+		(void) tzparse(gmt, sp, TRUE);
 }
 
 #ifndef STD_INSPIRED
+/*
+** A non-static declaration of tzsetwall in a system header file
+** may cause a warning about this upcoming static declaration...
+*/
 static
 #endif /* !defined STD_INSPIRED */
 void
-tzsetwall()
+tzsetwall P((void))
 {
-	lcl_is_set = TRUE;
+	if (lcl_is_set < 0)
+		return;
+	lcl_is_set = -1;
+
 #ifdef ALL_STATE
 	if (lclptr == NULL) {
 		lclptr = (struct state *) malloc(sizeof *lclptr);
@@ -852,7 +885,7 @@ tzsetwall()
 }
 
 void
-tzset()
+tzset P((void))
 {
 	register const char *	name;
 
@@ -861,7 +894,13 @@ tzset()
 		tzsetwall();
 		return;
 	}
-	lcl_is_set = TRUE;
+
+	if (lcl_is_set > 0  &&  strcmp(lcl_TZname, name) == 0)
+		return;
+	lcl_is_set = (strlen(name) < sizeof(lcl_TZname));
+	if (lcl_is_set)
+		(void) strcpy(lcl_TZname, name);
+
 #ifdef ALL_STATE
 	if (lclptr == NULL) {
 		lclptr = (struct state *) malloc(sizeof *lclptr);
@@ -879,7 +918,7 @@ tzset()
 		lclptr->timecnt = 0;
 		lclptr->ttis[0].tt_gmtoff = 0;
 		lclptr->ttis[0].tt_abbrind = 0;
-		(void) strcpy(lclptr->chars, GMT);
+		(void) strcpy(lclptr->chars, gmt);
 	} else if (tzload(name, lclptr) != 0)
 		if (name[0] == ':' || tzparse(name, lclptr, FALSE) != 0)
 			(void) gmtload(lclptr);
@@ -907,8 +946,6 @@ struct tm * const	tmp;
 	register int			i;
 	const time_t			t = *timep;
 
-	if (!lcl_is_set)
-		tzset();
 	sp = lclptr;
 #ifdef ALL_STATE
 	if (sp == NULL) {
@@ -948,8 +985,7 @@ struct tm *
 localtime(timep)
 const time_t * const	timep;
 {
-	static struct tm	tm;
-
+	tzset();
 	localsub(timep, 0L, &tm);
 	return &tm;
 }
@@ -980,11 +1016,11 @@ struct tm * const	tmp;
 	** but this is no time for a treasure hunt.
 	*/
 	if (offset != 0)
-		tmp->TM_ZONE = WILDABBR;
+		tmp->TM_ZONE = wildabbr;
 	else {
 #ifdef ALL_STATE
 		if (gmtptr == NULL)
-			tmp->TM_ZONE = GMT;
+			tmp->TM_ZONE = gmt;
 		else	tmp->TM_ZONE = gmtptr->chars;
 #endif /* defined ALL_STATE */
 #ifndef ALL_STATE
@@ -998,8 +1034,6 @@ struct tm *
 gmtime(timep)
 const time_t * const	timep;
 {
-	static struct tm	tm;
-
 	gmtsub(timep, 0L, &tm);
 	return &tm;
 }
@@ -1011,8 +1045,6 @@ offtime(timep, offset)
 const time_t * const	timep;
 const long		offset;
 {
-	static struct tm	tm;
-
 	gmtsub(timep, offset, &tm);
 	return &tm;
 }
@@ -1127,6 +1159,12 @@ char *
 ctime(timep)
 const time_t * const	timep;
 {
+/*
+** Section 4.12.3.2 of X3.159-1989 requires that
+**	The ctime funciton converts the calendar time pointed to by timer
+**	to local time in the form of a string.  It is equivalent to
+**		asctime(localtime(timer))
+*/
 	return asctime(localtime(timep));
 }
 
@@ -1401,6 +1439,7 @@ time_t
 mktime(tmp)
 struct tm * const	tmp;
 {
+	tzset();
 	return time1(tmp, localsub, 0L);
 }
 
@@ -1475,8 +1514,6 @@ time_t *	timep;
 	register struct lsinfo *	lp;
 	register int			i;
 
-	if (!lcl_is_set)
-		(void) tzset();
 	sp = lclptr;
 	i = sp->leapcnt;
 	while (--i >= 0) {
@@ -1491,6 +1528,7 @@ time_t
 time2posix(t)
 time_t	t;
 {
+	tzset();
 	return t - leapcorr(&t);
 }
 
@@ -1501,6 +1539,7 @@ time_t	t;
 	time_t	x;
 	time_t	y;
 
+	tzset();
 	/*
 	** For a positive leap second hit, the result
 	** is not unique.  For a negative leap second
