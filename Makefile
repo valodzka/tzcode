@@ -1,4 +1,4 @@
-# @(#)Makefile	7.62
+# @(#)Makefile	7.63
 
 # Change the line below for your time zone (after finding the zone you want in
 # the time zone files, or adding it to a time zone file).
@@ -300,6 +300,8 @@ other_two:	zic leapseconds $(TDATA)
 posix_right:	posix_only other_two
 
 right_posix:	right_only other_two
+
+zones:		$(REDO)
 
 $(TZLIB):	$(LIBOBJS)
 		-mkdir $(TOPDIR) $(LIBDIR)
