@@ -1,4 +1,4 @@
-static char	elsieid[] = "@(#)zic.c	7.118";
+static char	elsieid[] = "@(#)zic.c	7.120";
 
 /*
 ** Regardless of the type of time_t, we do our work using this type.
@@ -579,6 +579,11 @@ _("%s: More than one -L option specified\n"),
 	for (i = 0; i < nlinks; ++i) {
 		eat(links[i].l_filename, links[i].l_linenum);
 		dolink(links[i].l_from, links[i].l_to);
+		if (noise)
+			for (j = 0; j < nlinks; ++j)
+				if (strcmp(links[i].l_to,
+					links[j].l_from) == 0)
+						warning(_("link to link"));
 	}
 	if (lcltime != NULL) {
 		eat("command line", 1);

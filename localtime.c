@@ -5,7 +5,7 @@
 
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)localtime.c	7.89";
+static char	elsieid[] = "@(#)localtime.c	7.90";
 #endif /* !defined NOID */
 #endif /* !defined lint */
 
@@ -20,6 +20,7 @@ static char	elsieid[] = "@(#)localtime.c	7.89";
 #include "private.h"
 #include "tzfile.h"
 #include "fcntl.h"
+#include "float.h"	/* for FLT_MAX and DBL_MAX */
 
 /*
 ** SunOS 4.1.1 headers lack O_BINARY.

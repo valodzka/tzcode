@@ -1,4 +1,4 @@
-# @(#)Makefile	7.103
+# @(#)Makefile	7.106
 
 # Change the line below for your time zone (after finding the zone you want in
 # the time zone files, or adding it to a time zone file).
@@ -383,11 +383,15 @@ names:
 		@echo $(ENCHILADA)
 
 # The zics below ensure that each data file can stand on its own.
+# We also do an all-files run to catch links to links.
 
-public:		$(ENCHILADA) zic
+public:		$(ENCHILADA)
+		make maintainer-clean
+		make "CFLAGS=$(GCC_DEBUG_FLAGS)"
 		-mkdir /tmp/,tzpublic
 		-for i in $(TDATA) ; do zic -v -d /tmp/,tzpublic $$i 2>&1 | grep -v "starting year" ; done
 		for i in $(TDATA) ; do zic -d /tmp/,tzpublic $$i || exit; done
+		zic -v -d /tmp/,tzpublic $(TDATA) || exit
 		rm -f -r /tmp/,tzpublic
 		for i in *.[1-8] ; do sh workman.sh $$i > $$i.txt || exit; done
 		$(AWK) -f checktab.awk $(PRIMARY_YDATA)
