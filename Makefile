@@ -1,4 +1,4 @@
-# @(#)Makefile	7.40
+# @(#)Makefile	7.41
 
 # Change the line below for your time zone (after finding the zone you want in
 # the time zone files, or adding it to a time zone file).
@@ -213,7 +213,7 @@ NDATA=		systemv
 SDATA=		solar87 solar88 solar89
 TDATA=		$(YDATA) $(NDATA) $(SDATA)
 DATA=		$(YDATA) $(NDATA) $(SDATA) leapseconds yearistype.sh
-MISC=		usno1988 usno1989 usno1989a Music
+MISC=		usno1988 usno1989 usno1989a usno1995 Music
 ENCHILADA=	$(DOCS) $(SOURCES) $(DATA) $(MISC)
 
 # And for the benefit of csh users on systems that assume the user

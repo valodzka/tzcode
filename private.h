@@ -16,7 +16,7 @@
 
 #ifndef lint
 #ifndef NOID
-static char	privatehid[] = "@(#)private.h	7.33";
+static char	privatehid[] = "@(#)private.h	7.34";
 #endif /* !defined NOID */
 #endif /* !defined lint */
 
@@ -47,7 +47,6 @@ static char	privatehid[] = "@(#)private.h	7.33";
 
 #include "sys/types.h"	/* for time_t */
 #include "stdio.h"
-#include "ctype.h"
 #include "errno.h"
 #include "string.h"
 #include "limits.h"	/* for CHAR_BIT */
@@ -66,6 +65,9 @@ static char	privatehid[] = "@(#)private.h	7.33";
 #define R_OK	4
 #endif /* !defined R_OK */
 #endif /* !(HAVE_UNISTD_H - 0) */
+
+/* Unlike <ctype.h>'s isdigit, this also works if c < 0 | c > UCHAR_MAX.  */
+#define is_digit(c) ((unsigned)(c) - '0' <= 9)
 
 /*
 ** Workarounds for compilers/systems.

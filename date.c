@@ -1,6 +1,6 @@
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)date.c	7.28";
+static char	elsieid[] = "@(#)date.c	7.30";
 /*
 ** Modified from the UCB version with the SCCS ID appearing below.
 */
@@ -207,9 +207,9 @@ char *		argv[];
 			if ((cp = strchr(value, '.')) != NULL) {
 				/*
 				** Ensure that the failure of
-				**	TZ=US/Eastern date 8712312359.60
+				**	TZ=America/New_York date 8712312359.60
 				** doesn't get misdiagnosed.  (It was
-				**	TZ=US/Eastern date 8712311859.60
+				**	TZ=America/New_York date 8712311859.60
 				** when the leap second was inserted.)
 				** The normal check won't work since
 				** the given time is valid in GMT.
@@ -459,7 +459,7 @@ static const char *
 nondigit(cp)
 register const char *	cp;
 {
-	while (isdigit(*cp))
+	while (is_digit(*cp))
 		++cp;
 	return cp;
 }
@@ -592,7 +592,7 @@ const time_t			t;
 
 	dotp = strchr(value, '.');
 	for (cp = value; *cp != '\0'; ++cp)
-		if (!isdigit(*cp) && cp != dotp)
+		if (!is_digit(*cp) && cp != dotp)
 			wildinput("time", value, "contains a nondigit");
 
 	if (dotp == NULL)
