@@ -1,4 +1,4 @@
-# @(#)Makefile	7.75
+# @(#)Makefile	7.76
 
 # Change the line below for your time zone (after finding the zone you want in
 # the time zone files, or adding it to a time zone file).
@@ -245,7 +245,7 @@ TDATA=		$(YDATA) $(NDATA) $(SDATA)
 TABDATA=	iso3166.tab zone.tab
 DATA=		$(YDATA) $(NDATA) $(SDATA) $(TABDATA) leapseconds yearistype.sh
 MISC=		usno1988 usno1989 usno1989a usno1995 usno1997 usno1998 \
-			Arts.htm WWW.htm gccdiffs checktab.awk
+			tz-art.htm tz-link.htm gccdiffs checktab.awk
 ENCHILADA=	$(DOCS) $(SOURCES) $(DATA) $(MISC)
 
 # And for the benefit of csh users on systems that assume the user
