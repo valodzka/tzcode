@@ -1,4 +1,4 @@
-# @(#)Makefile	7.65
+# @(#)Makefile	7.67
 
 # Change the line below for your time zone (after finding the zone you want in
 # the time zone files, or adding it to a time zone file).
@@ -238,7 +238,7 @@ SDATA=		solar87 solar88 solar89
 TDATA=		$(YDATA) $(NDATA) $(SDATA)
 TABDATA=	iso3166.tab zone.tab
 DATA=		$(YDATA) $(NDATA) $(SDATA) $(TABDATA) leapseconds yearistype.sh
-MISC=		usno1988 usno1989 usno1989a usno1995 usno1997 \
+MISC=		usno1988 usno1989 usno1989a usno1995 usno1997 usno1998 \
 			Arts.htm WWW.htm gccdiffs checktab.awk
 ENCHILADA=	$(DOCS) $(SOURCES) $(DATA) $(MISC)
 
@@ -293,10 +293,19 @@ posix_only:	zic $(TDATA)
 right_only:	zic leapseconds $(TDATA)
 		$(ZIC) -y $(YEARISTYPE) -d $(TZDIR) -L leapseconds $(TDATA)
 
+# In earlier versions of this makefile, the other two directories were
+# subdirectories of $(TZDIR).  However, this led to configuration errors.
+# For example, with posix_right under the earlier scheme,
+# TZ='right/Australia/Adelaide' got you localtime with leap seconds,
+# but gmtime without leap seconds, which led to problems with applications
+# like sendmail that subtract gmtime from localtime.
+# Therefore, the other two directories are now siblings of $(TZDIR).
+# You must replace all of $(TZDIR) to switch from not using leap seconds
+# to using them, or vice versa.
 other_two:	zic leapseconds $(TDATA)
-		$(ZIC) -y $(YEARISTYPE) -d $(TZDIR)/posix -L /dev/null $(TDATA)
+		$(ZIC) -y $(YEARISTYPE) -d $(TZDIR)-posix -L /dev/null $(TDATA)
 		$(ZIC) -y $(YEARISTYPE) \
-			-d $(TZDIR)/right -L leapseconds $(TDATA)
+			-d $(TZDIR)-leaps -L leapseconds $(TDATA)
 
 posix_right:	posix_only other_two
 
