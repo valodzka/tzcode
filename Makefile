@@ -1,4 +1,4 @@
-# @(#)Makefile	7.72
+# @(#)Makefile	7.73
 
 # Change the line below for your time zone (after finding the zone you want in
 # the time zone files, or adding it to a time zone file).
@@ -358,6 +358,7 @@ public:		$(ENCHILADA) zic
 		-mkdir /tmp/,tzpublic
 		for i in $(TDATA) ; do zic -d /tmp/,tzpublic $$i ; done
 		rm -f -r /tmp/,tzpublic
+		nawk -f checktab.awk $(PRIMARY_YDATA)
 		tar cf - $(DOCS) $(SOURCES) $(MISC) | gzip -9 > tzcode.tar.gz
 		tar cf - $(DATA) | gzip -9 > tzdata.tar.gz
 
