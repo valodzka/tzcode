@@ -1,6 +1,6 @@
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)logwtmp.c	7.5";
+static char	elsieid[] = "@(#)logwtmp.c	7.7";
 /* As received from UCB, with include reordering and OLD_TIME condition. */
 #endif /* !defined NOID */
 #endif /* !defined lint */
@@ -30,6 +30,12 @@ static char sccsid[] = "@(#)logwtmp.c	5.2 (Berkeley) 9/20/88";
 
 #include <sys/types.h>
 #include <utmp.h>
+
+#ifdef OLD_TIME
+
+char dummy_to_keep_linker_happy;
+
+#endif /* defined OLD_TIME */
 
 #ifndef OLD_TIME
 

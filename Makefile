@@ -1,4 +1,4 @@
-# @(#)Makefile	7.44
+# @(#)Makefile	7.46
 
 # Change the line below for your time zone (after finding the zone you want in
 # the time zone files, or adding it to a time zone file).
@@ -87,6 +87,7 @@ YEARISTYPE=	./yearistype
 #  -DHAVE_SETTIMEOFDAY=3 if settimeofday ignores 2nd arg (4.4BSD)
 #  -DLOCALE_HOME=\"path\" if locales are in "path", not "/usr/lib/locale"
 #  -DHAVE_UNISTD_H=0 if your compiler lacks a "unistd.h" (Microsoft C++ 7?)
+#  -DHAVE_UTMPX_H=1 if your compiler has a "utmpx.h"
 #  $(GCC_DEBUG_FLAGS) if you are using GCC and want lots of checking
 #
 GCC_DEBUG_FLAGS = -Dlint -g -O -fno-common \
