@@ -1,4 +1,4 @@
-# @(#)Makefile	7.69
+# @(#)Makefile	7.72
 
 # Change the line below for your time zone (after finding the zone you want in
 # the time zone files, or adding it to a time zone file).
@@ -28,6 +28,9 @@ LOCALTIME=	Factory
 # If you want POSIX compatibility, use "America/New_York".
 
 POSIXRULES=	America/New_York
+
+# Also see TZDEFRULESTRING below, which takes effect only
+# if the time zone files cannot be accessed.
 
 # Everything gets put in subdirectories of. . .
 
@@ -96,6 +99,8 @@ LDLIBS=
 #  -DLOCALE_HOME=\"path\" if locales are in "path", not "/usr/lib/locale"
 #  -DHAVE_UNISTD_H=0 if your compiler lacks a "unistd.h" (Microsoft C++ 7?)
 #  -DHAVE_UTMPX_H=1 if your compiler has a "utmpx.h"
+#  -DTZDEFRULESTRING=\",date/time,date/time\" to default to the specified
+#	DST transitions if the time zone files cannot be accessed
 #  -DTZ_DOMAIN=\"foo\" to use "foo" for gettext domain name; default is "tz"
 #  -TTZ_DOMAINDIR=\"/path\" to use "/path" for gettext directory;
 #	the default is system-supplied, typically "/usr/lib/locale"
@@ -156,7 +161,7 @@ GCC_DEBUG_FLAGS = -Dlint -g -O -fno-common \
 # "timeoff" is like "timegm" except that it accepts a second (long) argument
 # that gives an offset to use when converting to a time_t.
 # "posix2time" and "time2posix" are described in an included manual page.
-# None of these functions are described in X3J11's current work.
+# X3J11's work does not describe any of these functions.
 # Sun has provided "tzsetwall", "timelocal", and "timegm" in SunOS 4.0.
 # These functions may well disappear in future releases of the time
 # conversion package.
