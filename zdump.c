@@ -1,6 +1,6 @@
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)zdump.c	7.3";
+static char	elsieid[] = "@(#)zdump.c	7.7";
 #endif /* !defined NOID */
 #endif /* !defined lint */
 
@@ -39,8 +39,12 @@ static char	elsieid[] = "@(#)zdump.c	7.3";
 #define SECSPERMIN	60
 #endif /* !defined SECSPERMIN */
 
+#ifndef MINSPERHOUR
+#define MINSPERHOUR	60
+#endif /* !defined MINSPERHOUR */
+
 #ifndef SECSPERHOUR
-#define SECSPERHOUR	3600
+#define SECSPERHOUR	(SECSPERMIN * MINSPERHOUR)
 #endif /* !defined SECSPERHOUR */
 
 #ifndef HOURSPERDAY
@@ -51,9 +55,17 @@ static char	elsieid[] = "@(#)zdump.c	7.3";
 #define EPOCH_YEAR	1970
 #endif /* !defined EPOCH_YEAR */
 
+#ifndef TM_YEAR_BASE
+#define TM_YEAR_BASE	1900
+#endif /* !defined TM_YEAR_BASE */
+
 #ifndef DAYSPERNYEAR
 #define DAYSPERNYEAR	365
 #endif /* !defined DAYSPERNYEAR */
+
+#ifndef isleap
+#define isleap(y) ((((y) % 4) == 0 && ((y) % 100) != 0) || ((y) % 400) == 0)
+#endif /* !defined isleap */
 
 extern char **	environ;
 extern int	getopt();
@@ -104,13 +116,15 @@ char *	argv[];
 			argv[0], argv[0]);
 		(void) exit(EXIT_FAILURE);
 	}
-	if (cutoff != NULL)
+	if (cutoff != NULL) {
+		int	y;
+
 		cutyear = atoi(cutoff);
-	/*
-	** VERY approximate.
-	*/
-	cuttime = (long) (cutyear - EPOCH_YEAR) *
-		SECSPERHOUR * HOURSPERDAY * DAYSPERNYEAR;
+		cuttime = 0;
+		for (y = EPOCH_YEAR; y < cutyear; ++y)
+			cuttime += DAYSPERNYEAR + isleap(y);
+		cuttime *= SECSPERHOUR * HOURSPERDAY;
+	}
 	(void) time(&now);
 	longest = 0;
 	for (i = optind; i < argc; ++i)
@@ -225,19 +239,31 @@ time_t	hit;
 	show(name, hit, TRUE);
 }
 
+/*
+** Thanks to Paul Eggert (eggert@twinsun.com) for logic used in delta.
+*/
+
 static long
 delta(newp, oldp)
 struct tm *	newp;
 struct tm *	oldp;
 {
 	long	result;
+	int	tmy;
 
-	result = newp->tm_hour - oldp->tm_hour;
-	if (result < 0)
-		result += HOURSPERDAY;
-	result *= SECSPERHOUR;
-	result += (newp->tm_min - oldp->tm_min) * SECSPERMIN;
-	return result + newp->tm_sec - oldp->tm_sec;
+	if (newp->tm_year < oldp->tm_year)
+		return -delta(oldp, newp);
+	result = 0;
+	for (tmy = oldp->tm_year; tmy < newp->tm_year; ++tmy)
+		result += DAYSPERNYEAR + isleap(tmy + TM_YEAR_BASE);
+	result += newp->tm_yday - oldp->tm_yday;
+	result *= HOURSPERDAY;
+	result += newp->tm_hour - oldp->tm_hour;
+	result *= MINSPERHOUR;
+	result += newp->tm_min - oldp->tm_min;
+	result *= SECSPERMIN;
+	result += newp->tm_sec - oldp->tm_sec;
+	return result;
 }
 
 static void
