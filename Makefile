@@ -1,4 +1,4 @@
-# @(#)Makefile	7.29
+# @(#)Makefile	7.39
 
 # Change the line below for your time zone (after finding the zone you want in
 # the time zone files, or adding it to a time zone file).
@@ -58,7 +58,7 @@ TZLIB=		$(LIBDIR)/libz.a
 
 # If you always want time values interpreted as "seconds since the epoch
 # (not counting leap seconds)", use
-# 	REDO=		posix_only
+#	REDO=		posix_only
 # below.  If you always want right time values interpreted as "seconds since
 # the epoch" (counting leap seconds)", use
 #	REDO=		right_only
@@ -78,18 +78,21 @@ REDO=		posix_right
 
 YEARISTYPE=	./yearistype
 
-# If you're on an AT&T-based system (rather than a BSD-based system), add
-#	-DUSG
-# to the end of the "CFLAGS=" line.
+# Add the following to the end of the "CFLAGS=" line as needed.
+#  -DHAVE_ADJTIME=0 if `adjtime' does not exist (SVR0?)
+#  -DHAVE_LONG_DOUBLE=1 if your compiler supports the `long double' type
+#  -DHAVE_SETTIMEOFDAY=0 if settimeofday does not exist (SVR0?)
+#  -DHAVE_SETTIMEOFDAY=1 if settimeofday has just 1 arg (SVR4)
+#  -DHAVE_SETTIMEOFDAY=2 if settimeofday uses 2nd arg (4.3BSD)
+#  -DHAVE_SETTIMEOFDAY=3 if settimeofday ignores 2nd arg (4.4BSD)
+#  -DLOCALE_HOME=\"path\" if locales are in "path", not "/usr/lib/locale"
+#  -DHAVE_UNISTD_H=0 if your compiler lacks a "unistd.h" file (Microsoft C++ 7?)
+#  $(GCC_DEBUG_FLAGS) if you are using GCC and want lots of checking
 #
-# If you're running on a system where "strchr" is known as "index"
-# (for example, a 4.[012]BSD system), add
-#	-Dstrchr=index
-# to the end of the "CFLAGS=" line.
-#
-# If you're running on a system with a "mkdir" function, feel free to add
-#	-Demkdir=mkdir
-# to the end of the "CFLAGS=" line
+GCC_DEBUG_FLAGS = -Dlint -g -O -fno-common \
+	-Wall -Wcast-qual -Wconversion -Wmissing-prototypes \
+	-Wnested-externs -Wpointer-arith -Wshadow \
+	-Wtraditional # -Wstrict-prototypes -Wwrite-strings
 #
 # If you want to use System V compatibility code, add
 #	-DUSG_COMPAT
@@ -181,34 +184,24 @@ YEARISTYPE=	./yearistype
 # 53 as a week number (rather than 52 or 53) for those days in January that
 # before the first Monday in January when a "%V" format is used and January 1
 # falls on a Friday, Saturday, or Sunday.
-#
-# If your compiler supports the `long double' type, add
-#	-DHAVE_LONG_DOUBLE
-# to the end of the "CFLAGS=" line.
-#
-# XXX--note about LOCALE_HOME here
-# XXX--note about HAVE_SETLOCALE here
 
 CFLAGS=
 
 ################################################################################
 
-CC=		cc -DTZDIR=\"$(TZDIR)\"
+cc=		cc
+CC=		$(cc) -DTZDIR=\"$(TZDIR)\"
 
-TZCSRCS= \
-	zic.c localtime.c asctime.c scheck.c ialloc.c emkdir.c getopt.c optind.c
-TZCOBJS= \
-	zic.o localtime.o asctime.o scheck.o ialloc.o emkdir.o getopt.o optind.o
-TZDSRCS=	zdump.c localtime.c asctime.c ialloc.c getopt.c optind.c
-TZDOBJS=	zdump.o localtime.o asctime.o ialloc.o getopt.o optind.o
-DATESRCS= \
-	date.c localtime.c getopt.c optind.c logwtmp.c strftime.c asctime.c
-DATEOBJS= \
-	date.o localtime.o getopt.o optind.o logwtmp.o strftime.o asctime.o
+TZCSRCS=	zic.c localtime.c asctime.c scheck.c ialloc.c
+TZCOBJS=	zic.o localtime.o asctime.o scheck.o ialloc.o
+TZDSRCS=	zdump.c localtime.c asctime.c ialloc.c
+TZDOBJS=	zdump.o localtime.o asctime.o ialloc.o
+DATESRCS=	date.c localtime.c logwtmp.c strftime.c asctime.c
+DATEOBJS=	date.o localtime.o logwtmp.o strftime.o asctime.o
 LIBSRCS=	localtime.c asctime.c difftime.c
 LIBOBJS=	localtime.o asctime.o difftime.o
 HEADERS=	tzfile.h private.h
-NONLIBSRCS=	zic.c zdump.c scheck.c ialloc.c emkdir.c getopt.c optind.c
+NONLIBSRCS=	zic.c zdump.c scheck.c ialloc.c
 NEWUCBSRCS=	date.c logwtmp.c strftime.c
 SOURCES=	$(HEADERS) $(LIBSRCS) $(NONLIBSRCS) $(NEWUCBSRCS)
 MANS=		newctime.3 newtzset.3 time2posix.3 tzfile.5 zic.8 zdump.8
@@ -280,23 +273,16 @@ posix_right:	posix_only other_two
 
 right_posix:	right_only other_two
 
-# The "ar d"s below ensure that obsolete object modules
-# (based on source provided with earlier versions of the time conversion stuff)
-# are removed from the library.
-
 $(TZLIB):	$(LIBOBJS)
 		-mkdir $(TOPDIR) $(LIBDIR)
-		sleep 3
 		ar ru $@ $(LIBOBJS)
-		if ar t $@ timemk.o 2>/dev/null ; then ar d $@ timemk.o ; fi
-		if ar t $@ ctime.o 2>/dev/null ; then ar d $@ ctime.o ; fi
 		if [ -x /usr/ucb/ranlib -o -x /usr/bin/ranlib ] ; \
 			then ranlib $@ ; fi
 
-# We use the system's getopt and logwtmp in preference to ours if available.
+# We use the system's logwtmp in preference to ours if available.
 
 date:		$(DATEOBJS)
-		ar r ,lib.a getopt.o optind.o logwtmp.o
+		ar r ,lib.a logwtmp.o
 		if [ -x /usr/ucb/ranlib -o -x /usr/bin/ranlib ] ; \
 			then ranlib ,lib.a ; fi
 		$(CC) $(CFLAGS) date.o localtime.o asctime.o strftime.o \
@@ -319,7 +305,6 @@ zonenames:	$(TDATA)
 asctime.o:	private.h tzfile.h
 date.o:		private.h
 difftime.o:	private.h
-emkdir.o:	private.h
 ialloc.o:	private.h
 localtime.o:	private.h tzfile.h
 scheck.o:	private.h

@@ -1,6 +1,6 @@
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)strftime.c	7.33";
+static char	elsieid[] = "@(#)strftime.c	7.38";
 /*
 ** Based on the UCB version with the ID appearing below.
 ** This is ANSIish only when "multibyte character == plain character".
@@ -35,9 +35,7 @@ static const char	sccsid[] = "@(#)strftime.c	5.4 (Berkeley) 3/14/89";
 
 #include "tzfile.h"
 #include "fcntl.h"
-#if HAVE_SETLOCALE - 0
 #include "locale.h"
-#endif /* HAVE_SETLOCALE - 0 */
 
 struct lc_time_T {
 	const char *	mon[12];
@@ -53,6 +51,7 @@ struct lc_time_T {
 };
 
 #ifdef LOCALE_HOME
+#include "sys/stat.h"
 static struct lc_time_T		localebuf;
 static struct lc_time_T *	_loc P((void));
 #define Locale	_loc()
@@ -98,7 +97,7 @@ static const struct lc_time_T	C_time_locale = {
 
 	/* am */
 	"AM",
-	
+
 	/* pm */
 	"PM",
 
@@ -108,7 +107,7 @@ static const struct lc_time_T	C_time_locale = {
 
 static char *	_add P((const char *, char *, const char *));
 static char *	_conv P((int, const char *, char *, const char *));
-static char *_fmt P((const char *, const struct tm *, char *, const char *));
+static char *	_fmt P((const char *, const struct tm *, char *, const char *));
 
 size_t strftime P((char *, size_t, const char *, const struct tm *));
 
@@ -337,7 +336,7 @@ label:
 						** Fri Jan 1: 53
 						** Sun Jan 1: 52
 						** Sat Jan 1: 53 if previous
-						** 		 year a leap
+						**		 year a leap
 						**		 year, else 52
 						*/
 						if (i == TM_FRIDAY)
@@ -471,14 +470,7 @@ _loc P((void))
 	*/
 	if (localebuf.mon[0])
 		return &localebuf;
-#if HAVE_SETLOCALE - 0
 	name = setlocale(LC_TIME, (char *) NULL);
-#endif /* HAVE_SETLOCALE - 0 */
-#if !(HAVE_SETLOCALE - 0)
-	if ((name = getenv("LC_ALL")) == NULL || *name == '\0')
-		if ((name = getenv(lc_time)) == NULL || *name == '\0')
-			name = getenv("LANG");
-#endif /* !(HAVE_SETLOCALE - 0) */
 	if (name == NULL || *name == '\0')
 		goto no_locale;
 	/*

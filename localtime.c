@@ -1,6 +1,6 @@
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)localtime.c	7.26";
+static char	elsieid[] = "@(#)localtime.c	7.43";
 #endif /* !defined NOID */
 #endif /* !defined lint */
 
@@ -16,7 +16,9 @@ static char	elsieid[] = "@(#)localtime.c	7.26";
 #include "tzfile.h"
 #include "fcntl.h"
 
-#define ACCESS_MODE	O_RDONLY
+/*
+** SunOS 4.1.1 headers lack O_BINARY.
+*/
 
 #ifdef O_BINARY
 #define OPEN_MODE	(O_RDONLY | O_BINARY)
@@ -29,9 +31,9 @@ static char	elsieid[] = "@(#)localtime.c	7.26";
 /*
 ** Someone might make incorrect use of a time zone abbreviation:
 **	1.	They might reference tzname[0] before calling tzset (explicitly
-**	 	or implicitly).
+**		or implicitly).
 **	2.	They might reference tzname[1] before calling tzset (explicitly
-**	 	or implicitly).
+**		or implicitly).
 **	3.	They might reference tzname[1] after setting to a time zone
 **		in which Daylight Saving Time is never observed.
 **	4.	They might reference tzname[0] after setting to a time zone
@@ -57,6 +59,7 @@ struct ttinfo {				/* time type information */
 	int		tt_isdst;	/* used to set tm_isdst */
 	int		tt_abbrind;	/* abbreviation list index */
 	int		tt_ttisstd;	/* TRUE if transition is std time */
+	int		tt_ttisgmt;	/* TRUE if transition is GMT */
 };
 
 struct lsinfo {				/* leap second information */
@@ -118,9 +121,13 @@ static int		increment_overflow P((int * number, int delta));
 static int		normalize_overflow P((int * tensptr, int * unitsptr,
 				int base));
 static void		settzname P((void));
-static time_t		time1 P((struct tm * tmp, void (* funcp)(),
+static time_t		time1 P((struct tm * tmp,
+				void(*funcp) P((const time_t *,
+				long, struct tm *)),
 				long offset));
-static time_t		time2 P((struct tm *tmp, void (* funcp)(),
+static time_t		time2 P((struct tm *tmp,
+				void(*funcp) P((const time_t *,
+				long, struct tm*)),
 				long offset, int * okayp));
 static void		timesub P((const time_t * timep, long offset,
 				const struct state * sp, struct tm * tmp));
@@ -146,7 +153,7 @@ static struct state	gmtmem;
 
 #ifndef TZ_STRLEN_MAX
 #define TZ_STRLEN_MAX 255
-#endif
+#endif /* !defined TZ_STRLEN_MAX */
 
 static char		lcl_TZname[TZ_STRLEN_MAX + 1];
 static int		lcl_is_set;
@@ -192,7 +199,7 @@ const char * const	codep;
 static void
 settzname P((void))
 {
-	register const struct state * const	sp = lclptr;
+	register struct state * const		sp = lclptr;
 	register int				i;
 
 	tzname[0] = wildabbr;
@@ -214,7 +221,7 @@ settzname P((void))
 		register const struct ttinfo * const	ttisp = &sp->ttis[i];
 
 		tzname[ttisp->tt_isdst] =
-			(char *) &sp->chars[ttisp->tt_abbrind];
+			&sp->chars[ttisp->tt_abbrind];
 #ifdef USG_COMPAT
 		if (ttisp->tt_isdst)
 			daylight = 1;
@@ -235,7 +242,7 @@ settzname P((void))
 								sp->types[i]];
 
 		tzname[ttisp->tt_isdst] =
-			(char *) &sp->chars[ttisp->tt_abbrind];
+			&sp->chars[ttisp->tt_abbrind];
 	}
 }
 
@@ -251,7 +258,14 @@ register struct state * const	sp;
 	if (name == NULL && (name = TZDEFAULT) == NULL)
 		return -1;
 	{
-		register int 	doaccess;
+		register int	doaccess;
+		/*
+		** Section 4.9.1 of the C standard says that
+		** "FILENAME_MAX expands to an integral constant expression
+		** that is the sie needed for an array of char large enough
+		** to hold the longest file name string that the implementation
+		** guarantees can be opened."
+		*/
 		char		fullname[FILENAME_MAX + 1];
 
 		if (name[0] == ':')
@@ -272,39 +286,49 @@ register struct state * const	sp;
 				doaccess = TRUE;
 			name = fullname;
 		}
-		if (doaccess && access(name, ACCESS_MODE) != 0)
+		if (doaccess && access(name, R_OK) != 0)
 			return -1;
 		if ((fid = open(name, OPEN_MODE)) == -1)
 			return -1;
 	}
 	{
-		register const struct tzhead *	tzhp;
-		char				buf[sizeof *sp + sizeof *tzhp];
-		int				ttisstdcnt;
+		struct tzhead *	tzhp;
+		char		buf[sizeof *sp + sizeof *tzhp];
+		int		ttisstdcnt;
+		int		ttisgmtcnt;
 
 		i = read(fid, buf, sizeof buf);
-		if (close(fid) != 0 || i < sizeof *tzhp)
+		if (close(fid) != 0)
 			return -1;
-		tzhp = (struct tzhead *) buf;
-		ttisstdcnt = (int) detzcode(tzhp->tzh_ttisstdcnt);
-		sp->leapcnt = (int) detzcode(tzhp->tzh_leapcnt);
-		sp->timecnt = (int) detzcode(tzhp->tzh_timecnt);
-		sp->typecnt = (int) detzcode(tzhp->tzh_typecnt);
-		sp->charcnt = (int) detzcode(tzhp->tzh_charcnt);
+		p = buf;
+		p += sizeof tzhp->tzh_reserved;
+		ttisstdcnt = (int) detzcode(p);
+		p += 4;
+		ttisgmtcnt = (int) detzcode(p);
+		p += 4;
+		sp->leapcnt = (int) detzcode(p);
+		p += 4;
+		sp->timecnt = (int) detzcode(p);
+		p += 4;
+		sp->typecnt = (int) detzcode(p);
+		p += 4;
+		sp->charcnt = (int) detzcode(p);
+		p += 4;
 		if (sp->leapcnt < 0 || sp->leapcnt > TZ_MAX_LEAPS ||
 			sp->typecnt <= 0 || sp->typecnt > TZ_MAX_TYPES ||
 			sp->timecnt < 0 || sp->timecnt > TZ_MAX_TIMES ||
 			sp->charcnt < 0 || sp->charcnt > TZ_MAX_CHARS ||
-			(ttisstdcnt != sp->typecnt && ttisstdcnt != 0))
+			(ttisstdcnt != sp->typecnt && ttisstdcnt != 0) ||
+			(ttisgmtcnt != sp->typecnt && ttisgmtcnt != 0))
 				return -1;
-		if (i < sizeof *tzhp +
-			sp->timecnt * (4 + sizeof (char)) +
-			sp->typecnt * (4 + 2 * sizeof (char)) +
-			sp->charcnt * sizeof (char) +
-			sp->leapcnt * 2 * 4 +
-			ttisstdcnt * sizeof (char))
+		if (i - (p - buf) < sp->timecnt * 4 +	/* ats */
+			sp->timecnt +			/* types */
+			sp->typecnt * (4 + 2) +		/* ttinfos */
+			sp->charcnt +			/* chars */
+			sp->leapcnt * (4 + 4) +		/* lsinfos */
+			ttisstdcnt +			/* ttisstds */
+			ttisgmtcnt)			/* ttisgmts */
 				return -1;
-		p = buf + sizeof *tzhp;
 		for (i = 0; i < sp->timecnt; ++i) {
 			sp->ats[i] = detzcode(p);
 			p += 4;
@@ -350,6 +374,19 @@ register struct state * const	sp;
 				ttisp->tt_ttisstd = *p++;
 				if (ttisp->tt_ttisstd != TRUE &&
 					ttisp->tt_ttisstd != FALSE)
+						return -1;
+			}
+		}
+		for (i = 0; i < sp->typecnt; ++i) {
+			register struct ttinfo *	ttisp;
+
+			ttisp = &sp->ttis[i];
+			if (ttisgmtcnt == 0)
+				ttisp->tt_ttisgmt = FALSE;
+			else {
+				ttisp->tt_ttisgmt = *p++;
+				if (ttisp->tt_ttisgmt != TRUE &&
+					ttisp->tt_ttisgmt != FALSE)
 						return -1;
 			}
 		}
@@ -747,82 +784,88 @@ const int			lastditch;
 					SECSPERDAY;
 			}
 		} else {
-			int		sawstd;
-			int		sawdst;
-			long		stdfix;
-			long		dstfix;
-			long		oldfix;
-			int		isdst;
+			register long	theirstdoffset;
+			register long	theirdstoffset;
+			register long	theiroffset;
+			register int	isdst;
 			register int	i;
+			register int	j;
 
 			if (*name != '\0')
 				return -1;
 			if (load_result != 0)
 				return -1;
 			/*
-			** Compute the difference between the real and
-			** prototype standard and summer time offsets
-			** from GMT, and put the real standard and summer
-			** time offsets into the rules in place of the
-			** prototype offsets.
+			** Initial values of theirstdoffset and theirdstoffset.
 			*/
-			sawstd = FALSE;
-			sawdst = FALSE;
-			stdfix = 0;
-			dstfix = 0;
-			for (i = 0; i < sp->typecnt; ++i) {
-				if (sp->ttis[i].tt_isdst) {
-					oldfix = dstfix;
-					dstfix = sp->ttis[i].tt_gmtoff +
-						dstoffset;
-					if (sawdst && (oldfix != dstfix))
-						return -1;
-					sp->ttis[i].tt_gmtoff = -dstoffset;
-					sp->ttis[i].tt_abbrind = stdlen + 1;
-					sawdst = TRUE;
-				} else {
-					oldfix = stdfix;
-					stdfix = sp->ttis[i].tt_gmtoff +
-						stdoffset;
-					if (sawstd && (oldfix != stdfix))
-						return -1;
-					sp->ttis[i].tt_gmtoff = -stdoffset;
-					sp->ttis[i].tt_abbrind = 0;
-					sawstd = TRUE;
+			theirstdoffset = 0;
+			for (i = 0; i < sp->timecnt; ++i) {
+				j = sp->types[i];
+				if (!sp->ttis[j].tt_isdst) {
+					theirstdoffset = -sp->ttis[j].tt_gmtoff;
+					break;
+				}
+			}
+			theirdstoffset = 0;
+			for (i = 0; i < sp->timecnt; ++i) {
+				j = sp->types[i];
+				if (sp->ttis[j].tt_isdst) {
+					theirdstoffset = -sp->ttis[j].tt_gmtoff;
+					break;
 				}
 			}
 			/*
-			** Make sure we have both standard and summer time.
+			** Initially we're assumed to be in standard time.
 			*/
-			if (!sawdst || !sawstd)
-				return -1;
+			isdst = FALSE;
+			theiroffset = theirstdoffset;
 			/*
-			** Now correct the transition times by shifting
-			** them by the difference between the real and
-			** prototype offsets.  Note that this difference
-			** can be different in standard and summer time;
-			** the prototype probably has a 1-hour difference
-			** between standard and summer time, but a different
-			** difference can be specified in TZ.
+			** Now juggle transition times and types
+			** tracking offsets as you do.
 			*/
-			isdst = FALSE;	/* we start in standard time */
 			for (i = 0; i < sp->timecnt; ++i) {
-				register const struct ttinfo *	ttisp;
-
-				/*
-				** If summer time is in effect, and the
-				** transition time was not specified as
-				** standard time, add the summer time
-				** offset to the transition time;
-				** otherwise, add the standard time offset
-				** to the transition time.
-				*/
-				ttisp = &sp->ttis[sp->types[i]];
-				sp->ats[i] +=
-					(isdst && !ttisp->tt_ttisstd) ?
-						dstfix : stdfix;
-				isdst = ttisp->tt_isdst;
+				j = sp->types[i];
+				sp->types[i] = sp->ttis[j].tt_isdst;
+				if (sp->ttis[j].tt_ttisgmt) {
+					/* No adjustment to transition time */
+				} else {
+					/*
+					** If summer time is in effect, and the
+					** transition time was not specified as
+					** standard time, add the summer time
+					** offset to the transition time;
+					** otherwise, add the standard time
+					** offset to the transition time.
+					*/
+					/*
+					** Transitions from DST to DDST
+					** will effectively disappear since
+					** POSIX provides for only one DST
+					** offset.
+					*/
+					if (isdst && !sp->ttis[j].tt_ttisstd) {
+						sp->ats[i] += dstoffset -
+							theirdstoffset;
+					} else {
+						sp->ats[i] += stdoffset -
+							theirstdoffset;
+					}
+				}
+				theiroffset = -sp->ttis[j].tt_gmtoff;
+				if (sp->ttis[j].tt_isdst)
+					theirdstoffset = theiroffset;
+				else	theirstdoffset = theiroffset;
 			}
+			/*
+			** Finally, fill in ttis.
+			** ttisstd and ttisgmt need not be handled.
+			*/
+			sp->ttis[0].tt_gmtoff = -stdoffset;
+			sp->ttis[0].tt_isdst = FALSE;
+			sp->ttis[0].tt_abbrind = 0;
+			sp->ttis[1].tt_gmtoff = -dstoffset;
+			sp->ttis[1].tt_isdst = TRUE;
+			sp->ttis[1].tt_abbrind = stdlen + 1;
 		}
 	} else {
 		dstlen = 0;
@@ -941,7 +984,7 @@ const time_t * const	timep;
 const long		offset;
 struct tm * const	tmp;
 {
-	register const struct state *	sp;
+	register struct state *		sp;
 	register const struct ttinfo *	ttisp;
 	register int			i;
 	const time_t			t = *timep;
@@ -975,7 +1018,7 @@ struct tm * const	tmp;
 	*/
 	timesub(&t, ttisp->tt_gmtoff, sp, tmp);
 	tmp->tm_isdst = ttisp->tt_isdst;
-	tzname[tmp->tm_isdst] = (char *) &sp->chars[ttisp->tt_abbrind];
+	tzname[tmp->tm_isdst] = &sp->chars[ttisp->tt_abbrind];
 #ifdef TM_ZONE
 	tmp->TM_ZONE = &sp->chars[ttisp->tt_abbrind];
 #endif /* defined TM_ZONE */
@@ -1106,7 +1149,7 @@ register struct tm * const		tmp;
 		days = -24855;
 		rem = -11648;
 	}
-#endif /* mc68k */
+#endif /* defined mc68k */
 	rem += (offset - corr);
 	while (rem < 0) {
 		rem += SECSPERDAY;
@@ -1190,8 +1233,8 @@ increment_overflow(number, delta)
 int *	number;
 int	delta;
 {
-	int number0;
-	
+	int	number0;
+
 	number0 = *number;
 	*number += delta;
 	return (*number < number0) != (delta < 0);
@@ -1231,7 +1274,7 @@ register const struct tm * const btmp;
 static time_t
 time2(tmp, funcp, offset, okayp)
 struct tm * const	tmp;
-void (* const		funcp)();
+void (* const		funcp) P((const time_t*, long, struct tm*));
 const long		offset;
 int * const		okayp;
 {
@@ -1376,7 +1419,7 @@ label:
 static time_t
 time1(tmp, funcp, offset)
 struct tm * const	tmp;
-void (* const		funcp)();
+void (* const		funcp) P((const time_t*, long, struct tm*));
 const long		offset;
 {
 	register time_t			t;

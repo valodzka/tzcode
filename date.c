@@ -1,6 +1,6 @@
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)date.c	7.13";
+static char	elsieid[] = "@(#)date.c	7.28";
 /*
 ** Modified from the UCB version with the SCCS ID appearing below.
 */
@@ -34,10 +34,11 @@ char copyright[] =
 static char sccsid[] = "@(#)date.c	4.23 (Berkeley) 9/20/88";
 #endif /* not lint */
 
-#ifndef USG
-#include "sys/time.h"	/* for DST_NONE */
-#endif /* !defined USG */
 #include "private.h"
+#if HAVE_ADJTIME || HAVE_SETTIMEOFDAY
+#include "sys/time.h"	/* for struct timeval, struct timezone */
+#endif /* HAVE_ADJTIME || HAVE_SETTIMEOFDAY */
+#include "locale.h"
 #include "utmp.h"	/* for OLD_TIME (or its absence) */
 
 /*
@@ -78,7 +79,8 @@ static void		oops P((const char *));
 static void		reset P((time_t, int));
 static void		timeout P((FILE *, const char *, const struct tm *));
 static void		usage P((void));
-static void		wildinput P((const char *, const char *, const char *));
+static void		wildinput P((const char *, const char *,
+				const char *));
 
 int
 main(argc, argv)
@@ -96,7 +98,7 @@ char *		argv[];
 	register int		tflag = 0;
 	register int		minuteswest;
 	register int		dsttime;
-	register float		adjust;
+	register double		adjust;
 	time_t			now;
 	time_t			t;
 
@@ -230,24 +232,24 @@ char *		argv[];
 	** Entire command line has now been checked.
 	*/
 	if (aflag) {
-#ifdef DST_NONE
+#if HAVE_ADJTIME
 		struct timeval	tv;
 
 		tv.tv_sec = (int) adjust;
 		tv.tv_usec = (int) ((adjust - tv.tv_sec) * 1000000);
 		if (adjtime(&tv, (struct timeval *) NULL) != 0)
 			oops("date: error: adjtime");
-#endif /* defined DST_NONE */
-#ifndef DST_NONE
+#endif /* HAVE_ADJTIME */
+#if !HAVE_ADJTIME
 		reset((time_t) (now + adjust), nflag);
-#endif /* !defined DST_NONE */
+#endif /* !HAVE_ADJTIME */
 		/*
 		** Sun silently ignores everything else; we follow suit.
 		*/
 		(void) exit(retval);
 	}
 	if (dflag || tflag) {
-#ifdef DST_NONE
+#if HAVE_SETTIMEOFDAY == 2
 		struct timezone	tz;
 
 		if (!dflag || !tflag)
@@ -259,11 +261,11 @@ char *		argv[];
 			tz.tz_minuteswest = minuteswest;
 		if (settimeofday((struct timeval *) NULL, &tz) != 0)
 			oops("date: error: settimeofday");
-#endif /* defined DST_NONE */
-#ifndef DST_NONE
+#endif /* HAVE_SETTIMEOFDAY == 2 */
+#if HAVE_SETTIMEOFDAY != 2
 		(void) fprintf(stderr,
 "date: warning: kernel doesn't keep -d/-t information, option ignored\n");
-#endif /* !defined DST_NONE */
+#endif /* HAVE_SETTIMEOFDAY != 2 */
 	}
 
 	if (value == NULL)
@@ -296,19 +298,21 @@ dogmt()
 	static char **	fakeenv;
 
 	if (fakeenv == NULL) {
-		register int	from, to, n;
+		register int	from;
+		register int	to;
+		register int	n;
+		static char	tzegmt0[] = "TZ=GMT0";
 
 		for (n = 0;  environ[n] != NULL;  ++n)
 			continue;
-		fakeenv = (char **) malloc((alloc_size_T) (n + 2) *
-			sizeof *fakeenv);
+		fakeenv = (char **) malloc((size_t) (n + 2) * sizeof *fakeenv);
 		if (fakeenv == NULL) {
 			(void) perror("Memory exhausted");
 			errensure();
 			(void) exit(retval);
 		}
 		to = 0;
-		fakeenv[to++] = "TZ=GMT0";
+		fakeenv[to++] = tzegmt0;
 		for (from = 1; environ[from] != NULL; ++from)
 			if (strncmp(environ[from], "TZ=", 3) != 0)
 				fakeenv[to++] = environ[from];
@@ -393,6 +397,10 @@ const int	nflag;
 #define TSPTYPES
 #include "protocols/timed.h"
 
+#if HAVE_SETTIMEOFDAY == 1
+#define settimeofday(t, tz) (settimeofday)(t)
+#endif /* HAVE_SETTIMEOFDAY == 1 */
+
 #ifndef TSP_SETDATE
 /*ARGSUSED*/
 #endif /* !defined TSP_SETDATE */
@@ -423,7 +431,7 @@ const int	nflag;
 			logwtmp("{", TIME_NAME, "");	/* } */
 			syslog(LOG_AUTH | LOG_NOTICE, "date set by %s",
 				username);
-		} else 	oops("date: error: settimeofday");
+		} else	oops("date: error: settimeofday");
 	}
 }
 
@@ -490,11 +498,8 @@ const char * const	format;
 
 	(void) time(&now);
 	tm = *localtime(&now);
-	if (format == NULL) {
-		timeout(stdout, "%a %b ", &tm);
-		(void) printf("%2d ", tm.tm_mday);
-		timeout(stdout, "%X %Z %Y", &tm);
-	} else	timeout(stdout, format, &tm);
+	setlocale(LC_TIME, "");
+	timeout(stdout, format ? format : "%+", &tm);
 	(void) putchar('\n');
 	(void) fflush(stdout);
 	(void) fflush(stderr);
@@ -523,7 +528,7 @@ const struct tm * const	tmp;
 	if (*format == '\0')
 		return;
 	size = INCR;
-	cp = malloc((alloc_size_T) size);
+	cp = malloc((size_t) size);
 	for ( ; ; ) {
 		if (cp == NULL) {
 			(void) fprintf(stderr,
@@ -535,7 +540,7 @@ const struct tm * const	tmp;
 		if (result != 0)
 			break;
 		size += INCR;
-		cp = realloc(cp, (alloc_size_T) size);
+		cp = realloc(cp, (size_t) size);
 	}
 	(void) fwrite(cp, 1, result, fp);
 	free(cp);
@@ -571,7 +576,7 @@ const int			dousg;
 const time_t			t;
 {
 	register const char *	cp;
-	register char *	dotp;
+	register const char *	dotp;
 	register int	cent, year_in_cent, month, hour, day, mins, secs;
 	struct tm	tm, outtm;
 	time_t		outt;
