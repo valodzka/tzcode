@@ -1,4 +1,4 @@
-# @(#)Makefile	7.48
+# @(#)Makefile	7.54
 
 # Change the line below for your time zone (after finding the zone you want in
 # the time zone files, or adding it to a time zone file).
@@ -98,6 +98,9 @@ LDLIBS=
 #  -TTZ_DOMAINDIR=\"/path\" to use "/path" for gettext directory;
 #	the default is system-supplied, typically "/usr/lib/locale"
 #  $(GCC_DEBUG_FLAGS) if you are using GCC and want lots of checking
+#  -DNO_RUN_TIME_WARNINGS_ABOUT_YEAR_2000_PROBLEMS_THANK_YOU=1
+#	if you do not want run time warnings about formats that may cause
+#	year 2000 grief
 #
 GCC_DEBUG_FLAGS = -Dlint -g -O -fno-common \
 	-Wall -Wcast-qual -Wconversion -Wmissing-prototypes \
@@ -197,6 +200,9 @@ GCC_DEBUG_FLAGS = -Dlint -g -O -fno-common \
 
 CFLAGS=
 
+# The name of a Posix-compliant `awk' on your system.
+AWK=		awk
+
 ###############################################################################
 
 cc=		cc
@@ -213,18 +219,20 @@ LIBOBJS=	localtime.o asctime.o difftime.o
 HEADERS=	tzfile.h private.h
 NONLIBSRCS=	zic.c zdump.c scheck.c ialloc.c
 NEWUCBSRCS=	date.c logwtmp.c strftime.c
-SOURCES=	$(HEADERS) $(LIBSRCS) $(NONLIBSRCS) $(NEWUCBSRCS)
+SOURCES=	$(HEADERS) $(LIBSRCS) $(NONLIBSRCS) $(NEWUCBSRCS) tzselect.ksh
 MANS=		newctime.3 newstrftime.3 newtzset.3 time2posix.3 \
-			tzfile.5 zic.8 zdump.8
+			tzfile.5 tzselect.8 zic.8 zdump.8
 DOCS=		README Theory $(MANS) date.1 Makefile
-YDATA=		africa antarctica asia australasia \
-		europe northamerica southamerica pacificnew etcetera factory \
-		backward
+PRIMARY_YDATA=	africa antarctica asia australasia \
+		europe northamerica southamerica
+YDATA=		$(PRIMARY_YDATA) pacificnew etcetera factory backward
 NDATA=		systemv
 SDATA=		solar87 solar88 solar89
 TDATA=		$(YDATA) $(NDATA) $(SDATA)
-DATA=		$(YDATA) $(NDATA) $(SDATA) leapseconds yearistype.sh
-MISC=		usno1988 usno1989 usno1989a usno1995 Music WWW
+TABDATA=	iso3166.tab zone.tab
+DATA=		$(YDATA) $(NDATA) $(SDATA) $(TABDATA) leapseconds yearistype.sh
+MISC=		usno1988 usno1989 usno1989a usno1995 Music WWW gccdiffs \
+			checktab.awk
 ENCHILADA=	$(DOCS) $(SOURCES) $(DATA) $(MISC)
 
 # And for the benefit of csh users on systems that assume the user
@@ -234,11 +242,13 @@ SHELL=		/bin/sh
 
 all:		zic zdump $(LIBOBJS)
 
-ALL:		all date
+ALL:		all date tzselect
 
-install:	all $(DATA) $(REDO) $(TZLIB) $(MANS)
+install:	all $(DATA) $(REDO) $(TZLIB) $(MANS) $(TABDATA)
 		./zic -y $(YEARISTYPE) \
 			-d $(TZDIR) -l $(LOCALTIME) -p $(POSIXRULES)
+		-rm -f $(TZDIR)/iso3166.tab $(TZDIR)/zone.tab
+		cp iso3166.tab zone.tab $(TZDIR)/.
 		-mkdir $(TOPDIR) $(ETCDIR)
 		cp zic zdump $(ETCDIR)/.
 		-mkdir $(TOPDIR) $(MANDIR) \
@@ -246,11 +256,12 @@ install:	all $(DATA) $(REDO) $(TZLIB) $(MANS)
 		-rm -f $(MANDIR)/man3/newctime.3 \
 			$(MANDIR)/man3/newtzset.3 \
 			$(MANDIR)/man5/tzfile.5 \
+			$(MANDIR)/man8/tzselect.8 \
 			$(MANDIR)/man8/zdump.8 \
 			$(MANDIR)/man8/zic.8
 		cp newctime.3 newtzset.3 $(MANDIR)/man3/.
 		cp tzfile.5 $(MANDIR)/man5/.
-		cp zdump.8 zic.8 $(MANDIR)/man8/.
+		cp tzselect.8 zdump.8 zic.8 $(MANDIR)/man8/.
 
 INSTALL:	ALL install date.1
 		-mkdir $(TOPDIR) $(BINDIR)
@@ -300,8 +311,19 @@ date:		$(DATEOBJS)
 			$(LDLIBS) -lc ,lib.a -o $@
 		rm -f ,lib.a
 
+tzselect:	tzselect.ksh
+		sed \
+			-e 's|AWK=[^}]*|AWK=$(AWK)|g' \
+			-e 's|TZDIR=[^}]*|TZDIR=$(TZDIR)|' \
+			<$? >$@
+		chmod +x $@
+
+check_tables:	checktab.awk $(PRIMARY_YDATA)
+		$(AWK) -f checktab.awk $(PRIMARY_YDATA)
+
 clean:
-		rm -f core *.o *.out zdump zic yearistype date ,* *.tar.gz
+		rm -f core *.o *.out tzselect zdump zic yearistype date \
+			,* *.tar.gz
 
 names:
 		@echo $(ENCHILADA)
