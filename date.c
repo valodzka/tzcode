@@ -1,6 +1,6 @@
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)date.c	7.36";
+static char	elsieid[] = "@(#)date.c	7.38";
 /*
 ** Modified from the UCB version with the SCCS ID appearing below.
 */
@@ -42,6 +42,13 @@ static char sccsid[] = "@(#)date.c	4.23 (Berkeley) 9/20/88";
 #include "utmp.h"	/* for OLD_TIME (or its absence) */
 #if HAVE_UTMPX_H
 #include "utmpx.h"
+#endif
+
+#ifndef OTIME_MSG
+#define OTIME_MSG "old time"
+#endif
+#ifndef NTIME_MSG
+#define NTIME_MSG "new time"
 #endif
 
 /*
@@ -889,7 +896,7 @@ loop:
 	FD_ZERO(&ready);
 	FD_SET(s, &ready);
 	found = select(FD_SETSIZE, &ready, (fd_set *)0, (fd_set *)0, &tout);
-	length = sizeof(err);
+	length = sizeof err;
 	if (getsockopt(s, SOL_SOCKET, SO_ERROR, (char *)&err, &length) == 0
 	    && err) {
 		errno = err;

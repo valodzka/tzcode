@@ -5,7 +5,7 @@
 
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)difftime.c	7.7";
+static char	elsieid[] = "@(#)difftime.c	7.8";
 #endif /* !defined NOID */
 #endif /* !defined lint */
 
@@ -32,9 +32,9 @@ const time_t	time0;
 	time_t	delta;
 	time_t	hibit;
 
-	if (sizeof(time_t) < sizeof(double))
+	if (sizeof time_t < sizeof double)
 		return (double) time1 - (double) time0;
-	if (sizeof(time_t) < sizeof(long_double))
+	if (sizeof time_t < sizeof long_double)
 		return (long_double) time1 - (long_double) time0;
 	if (time1 < time0)
 		return -difftime(time0, time1);
