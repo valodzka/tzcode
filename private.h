@@ -16,7 +16,7 @@
 
 #ifndef lint
 #ifndef NOID
-static char	privatehid[] = "@(#)private.h	7.1";
+static char	privatehid[] = "@(#)private.h	7.4";
 #endif /* !defined NOID */
 #endif /* !defined lint */
 
@@ -72,6 +72,7 @@ typedef char *		genericptr_t;
 #include "ctype.h"
 #include "errno.h"
 #include "string.h"
+#include "limits.h"	/* for CHAR_BIT */
 #ifndef _TIME_
 #include "time.h"
 #endif /* !defined _TIME_ */
@@ -159,6 +160,17 @@ extern void		free P((char * buf));
 #ifndef FALSE
 #define FALSE	0
 #endif /* !defined FALSE */
+
+#ifndef INT_STRLEN_MAXIMUM
+/*
+** 302 / 1000 is log10(2.0) rounded up.
+** Subtract one for the sign bit;
+** add one for integer division truncation;
+** add one more for a minus sign.
+*/
+#define INT_STRLEN_MAXIMUM(type) \
+	((sizeof(type) * CHAR_BIT - 1) * 302 / 1000 + 2)
+#endif /* !defined INT_STRLEN_MAXIMUM */
 
 /*
 ** UNIX is a registered trademark of AT&T.
