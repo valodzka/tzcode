@@ -1,4 +1,4 @@
-# @(#)Makefile	7.18
+# @(#)Makefile	7.20
 
 # Change the line below for your time zone (after finding the zone you want in
 # the time zone files, or adding it to a time zone file).
@@ -196,7 +196,7 @@ NDATA=		systemv
 SDATA=		solar87 solar88 solar89
 TDATA=		$(YDATA) $(NDATA) $(SDATA)
 DATA=		$(YDATA) $(NDATA) $(SDATA) leapseconds yearistype.sh
-USNO=		usno1988 usno1989
+USNO=		usno1988 usno1989 usno1989a
 ENCHILADA=	$(DOCS) $(SOURCES) $(DATA) $(USNO)
 
 # And for the benefit of csh users on systems that assume the user
@@ -280,7 +280,7 @@ date:		$(DATEOBJS)
 		rm -f ,lib.a
 
 clean:
-		rm -f core *.o *.out zdump zic yearistype date ,* *.tar.Z
+		rm -f core *.o *.out zdump zic yearistype date ,* *.tar.gz
 
 names:
 		@echo $(ENCHILADA)
