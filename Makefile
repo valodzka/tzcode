@@ -1,4 +1,4 @@
-# @(#)Makefile	7.58
+# @(#)Makefile	7.60
 
 # Change the line below for your time zone (after finding the zone you want in
 # the time zone files, or adding it to a time zone file).
@@ -54,7 +54,7 @@ MANDIR=		$(TOPDIR)/man
 # Library functions are put in an archive in LIBDIR.
 
 LIBDIR=		$(TOPDIR)/lib
-TZLIB=		$(LIBDIR)/libz.a
+TZLIB=		$(LIBDIR)/libtz.a
 
 # If you always want time values interpreted as "seconds since the epoch
 # (not counting leap seconds)", use
@@ -238,7 +238,7 @@ TDATA=		$(YDATA) $(NDATA) $(SDATA)
 TABDATA=	iso3166.tab zone.tab
 DATA=		$(YDATA) $(NDATA) $(SDATA) $(TABDATA) leapseconds yearistype.sh
 MISC=		usno1988 usno1989 usno1989a usno1995 usno1997 \
-			Music WWW gccdiffs checktab.awk
+			Music WWW.htm gccdiffs checktab.awk
 ENCHILADA=	$(DOCS) $(SOURCES) $(DATA) $(MISC)
 
 # And for the benefit of csh users on systems that assume the user
