@@ -1,6 +1,6 @@
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)date.c	7.35";
+static char	elsieid[] = "@(#)date.c	7.36";
 /*
 ** Modified from the UCB version with the SCCS ID appearing below.
 */
@@ -130,7 +130,7 @@ char *		argv[];
 		case 'n':		/* don't set network */
 			nflag = 1;
 			break;
-		case 'd':		/* daylight savings time */
+		case 'd':		/* daylight saving time */
 			if (dflag) {
 				(void) fprintf(stderr,
 					_("date: error: multiple -d's used"));
