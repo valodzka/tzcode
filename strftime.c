@@ -1,6 +1,6 @@
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)strftime.c	7.38";
+static char	elsieid[] = "@(#)strftime.c	7.45";
 /*
 ** Based on the UCB version with the ID appearing below.
 ** This is ANSIish only when "multibyte character == plain character".
@@ -275,6 +275,25 @@ label:
 			case 'S':
 				pt = _conv(t->tm_sec, "%02d", pt, ptlim);
 				continue;
+			case 's':
+				{
+					struct tm	tm;
+					char		buf[INT_STRLEN_MAXIMUM(
+								time_t) + 1];
+
+					tm = *t;
+					(void) sprintf(buf,
+#if ((time_t) -1) < 0	/* if time_t is signed */
+						"%ld", (long)
+#endif /* time_t is signed */
+#if ((time_t) -1) >= 0	/* if time_t is unsigned */
+						"%lu", (unsigned long)
+#endif /* time_t is signed */
+
+						mktime(&tm));
+					pt = _add(buf, pt, ptlim);
+				}
+				continue;
 			case 'T':
 				pt = _fmt("%H:%M:%S", t, pt, ptlim);
 				continue;
@@ -295,67 +314,86 @@ label:
 				pt = _conv((t->tm_wday == 0) ? 7 : t->tm_wday,
 					"%d", pt, ptlim);
 				continue;
-			case 'V':
-				/*
-				** From Arnold Robbins' strftime version 3.0:
-				** "the week number of the year (the first
-				** Monday as the first day of week 1) as a
-				** decimal number (01-53).  The method for
-				** determining the week number is as specified
-				** by ISO 8601 (to wit: if the week containing
-				** January 1 has four or more days in the new
-				** year, then it is week 1, otherwise it is
-				** week 53 of the previous year and the next
-				** week is week 1)."
-				** (ado, 5/24/93)
-				*/
-				/*
-				** XXX--If January 1 falls on a Friday,
-				** January 1-3 are part of week 53 of the
-				** previous year.  By analogy, if January
-				** 1 falls on a Thursday, are December 29-31
-				** of the PREVIOUS year part of week 1???
-				** (ado 5/24/93)
-				*/
-				/*
-				** You are understood not to expect this.
-				*/
+			case 'V':	/* ISO 8601 week number */
+			case 'G':	/* ISO 8601 year (four digits) */
+			case 'g':	/* ISO 8601 year (two digits) */
+/*
+** From Arnold Robbins' strftime version 3.0:  "the week number of the
+** year (the first Monday as the first day of week 1) as a decimal number
+** (01-53)."
+** (ado, 1993-05-24)
+**
+** From "http://www.ft.uni-erlangen.de/~mskuhn/iso-time.html" by Markus Kuhn:
+** "Week 01 of a year is per definition the first week which has the
+** Thursday in this year, which is equivalent to the week which contains
+** the fourth day of January. In other words, the first week of a new year
+** is the week which has the majority of its days in the new year. Week 01
+** might also contain days from the previous year and the week before week
+** 01 of a year is the last week (52 or 53) of the previous year even if
+** it contains days from the new year. A week starts with Monday (day 1)
+** and ends with Sunday (day 7).  For example, the first week of the year
+** 1997 lasts from 1996-12-30 to 1997-01-05..."
+** (ado, 1996-01-02)
+*/
 				{
-					int	i;
+					int	year;
+					int	yday;
+					int	wday;
+					int	w;
 
-					i = (t->tm_yday + 10 - (t->tm_wday ?
-						(t->tm_wday - 1) : 6)) / 7;
-					if (i == 0) {
+					year = t->tm_year + TM_YEAR_BASE;
+					yday = t->tm_yday;
+					wday = t->tm_wday;
+					for ( ; ; ) {
+						int	len;
+						int	bot;
+						int	top;
+
+						len = isleap(year) ?
+							DAYSPERLYEAR :
+							DAYSPERNYEAR;
 						/*
-						** What day of the week does
-						** January 1 fall on?
+						** What yday (-3 ... 3) does
+						** the ISO year begin on?
 						*/
-						i = t->tm_wday -
-							(t->tm_yday - 1);
+						bot = ((yday + 11 - wday) %
+							DAYSPERWEEK) - 3;
 						/*
-						** Fri Jan 1: 53
-						** Sun Jan 1: 52
-						** Sat Jan 1: 53 if previous
-						**		 year a leap
-						**		 year, else 52
+						** What yday does the NEXT
+						** ISO year begin on?
 						*/
-						if (i == TM_FRIDAY)
-							i = 53;
-						else if (i == TM_SUNDAY)
-							i = 52;
-						else	i = isleap(t->tm_year +
-								TM_YEAR_BASE) ?
-								53 : 52;
-#ifdef XPG4_1994_04_09
-						/*
-						** As of 4/9/94, though,
-						** XPG4 calls for 53
-						** unconditionally.
-						*/
-						i = 53;
-#endif /* defined XPG4_1994_04_09 */
+						top = bot -
+							(len % DAYSPERWEEK);
+						if (top < -3)
+							top += DAYSPERWEEK;
+						top += len;
+						if (yday >= top) {
+							++year;
+							w = 1;
+							break;
+						}
+						if (yday >= bot) {
+							w = 1 + ((yday - bot) /
+								DAYSPERWEEK);
+							break;
+						}
+						--year;
+						yday += isleap(year) ?
+							DAYSPERLYEAR :
+							DAYSPERNYEAR;
 					}
-					pt = _conv(i, "%02d", pt, ptlim);
+#ifdef XPG4_1994_04_09
+					if (w == 52 && t->tm_mon == TM_JANUARY)
+						w = 53;
+#endif /* defined XPG4_1994_04_09 */
+					if (*format == 'V')
+						pt = _conv(w, "%02d",
+							pt, ptlim);
+					else if (*format == 'G')
+						pt = _conv(year, "%02d",
+							pt, ptlim);
+					else	pt = _conv(year, "%04d",
+							pt, ptlim);
 				}
 				continue;
 			case 'v':

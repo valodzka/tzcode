@@ -1,4 +1,4 @@
-# @(#)Makefile	7.43
+# @(#)Makefile	7.44
 
 # Change the line below for your time zone (after finding the zone you want in
 # the time zone files, or adding it to a time zone file).
@@ -204,7 +204,8 @@ HEADERS=	tzfile.h private.h
 NONLIBSRCS=	zic.c zdump.c scheck.c ialloc.c
 NEWUCBSRCS=	date.c logwtmp.c strftime.c
 SOURCES=	$(HEADERS) $(LIBSRCS) $(NONLIBSRCS) $(NEWUCBSRCS)
-MANS=		newctime.3 newtzset.3 time2posix.3 tzfile.5 zic.8 zdump.8
+MANS=		newctime.3 newstrftime.3 newtzset.3 time2posix.3 \
+			tzfile.5 zic.8 zdump.8
 DOCS=		README Theory $(MANS) date.1 Makefile
 YDATA=		africa antarctica asia australasia \
 		europe northamerica southamerica pacificnew etcetera factory \
