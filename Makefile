@@ -1,4 +1,4 @@
-# @(#)Makefile	7.21
+# @(#)Makefile	7.23
 
 # Change the line below for your time zone (after finding the zone you want in
 # the time zone files, or adding it to a time zone file).
@@ -168,6 +168,12 @@ YEARISTYPE=	./yearistype
 #	-DCMUCS
 # to the end of the "CFLAGS=" line
 # This function is not described in X3J11's work.
+#
+# NIST-PCTS:151-2, Version 1.4, (1993-12-03) is a test suite put
+# out by the National Institute of Standards and Technology
+# which claims to test C and Posix conformance.  If you want to pass PCTS, add
+#	-DPCTS
+# to the end of the "CFLAGS=" line.
 
 CFLAGS=
 
