@@ -1,4 +1,4 @@
-# @(#)Makefile	7.106
+# @(#)Makefile	7.107
 
 # Change the line below for your time zone (after finding the zone you want in
 # the time zone files, or adding it to a time zone file).
@@ -398,7 +398,7 @@ public:		$(ENCHILADA)
 		tar cf - $(DOCS) $(SOURCES) $(MISC) *.[1-8].txt | gzip -9 > tzcode.tar.gz
 		tar cf - $(DATA) | gzip -9 > tzdata.tar.gz
 
-typecheck:	
+typecheck:
 		make clean
 		for i in "long long" unsigned double; \
 		do \

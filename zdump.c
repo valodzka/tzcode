@@ -1,4 +1,4 @@
-static char	elsieid[] = "@(#)zdump.c	7.61";
+static char	elsieid[] = "@(#)zdump.c	7.63";
 
 /*
 ** This code has been made independent of the rest of the time
@@ -215,7 +215,7 @@ char *	argv[];
 	INITIALIZE(cutlotime);
 	INITIALIZE(cuthitime);
 #if HAVE_GETTEXT
-	(void) setlocale(LC_MESSAGES, "");
+	(void) setlocale(LC_ALL, "");
 #ifdef TZ_DOMAINDIR
 	(void) bindtextdomain(TZ_DOMAIN, TZ_DOMAINDIR);
 #endif /* defined TEXTDOMAINDIR */
@@ -318,7 +318,7 @@ _("%s: usage is %s [ --version ] [ -v ] [ -c [loyear,]hiyear ] zonename ...\n"),
 			newtmp = localtime(&newt);
 			if (newtmp != NULL)
 				newtm = *newtmp;
-			if ((tmp == NULL || newtmp == NULL) ?  (tmp != newtmp) :
+			if ((tmp == NULL || newtmp == NULL) ? (tmp != newtmp) :
 				(delta(&newtm, &tm) != (newt - t) ||
 				newtm.tm_isdst != tm.tm_isdst ||
 				strcmp(abbr(&newtm), buf) != 0)) {
