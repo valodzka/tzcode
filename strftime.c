@@ -1,6 +1,6 @@
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)strftime.c	7.47";
+static char	elsieid[] = "@(#)strftime.c	7.48";
 /*
 ** Based on the UCB version with the ID appearing below.
 ** This is ANSIish only when "multibyte character == plain character".
@@ -381,7 +381,10 @@ label:
 							DAYSPERNYEAR;
 					}
 #ifdef XPG4_1994_04_09
-					if (w == 52 && t->tm_mon == TM_JANUARY)
+					if ((w == 52
+					     && t->tm_mon == TM_JANUARY)
+					    || (w == 1
+						&& t->tm_mon == TM_DECEMBER))
 						w = 53;
 #endif /* defined XPG4_1994_04_09 */
 					if (*format == 'V')
