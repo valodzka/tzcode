@@ -1,6 +1,6 @@
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)localtime.c	7.9";
+static char	elsieid[] = "@(#)localtime.c	7.17";
 #endif /* !defined NOID */
 #endif /* !defined lint */
 
@@ -20,7 +20,8 @@ static char	elsieid[] = "@(#)localtime.c	7.9";
 
 #ifdef O_BINARY
 #define OPEN_MODE	(O_RDONLY | O_BINARY)
-#else /* !defined O_BINARY */
+#endif /* defined O_BINARY */
+#ifndef O_BINARY
 #define OPEN_MODE	O_RDONLY
 #endif /* !defined O_BINARY */
 
@@ -61,6 +62,15 @@ struct lsinfo {				/* leap second information */
 	long		ls_corr;	/* correction to apply */
 };
 
+#define BIGGEST(a, b)	(((a) > (b)) ? (a) : (b))
+
+#ifdef TZNAME_MAX
+#define MY_TZNAME_MAX	TZNAME_MAX
+#endif /* defined TZNAME_MAX */
+#ifndef TZNAME_MAX
+#define MY_TZNAME_MAX	255
+#endif /* !defined TZNAME_MAX */
+
 struct state {
 	int		leapcnt;
 	int		timecnt;
@@ -69,8 +79,8 @@ struct state {
 	time_t		ats[TZ_MAX_TIMES];
 	unsigned char	types[TZ_MAX_TIMES];
 	struct ttinfo	ttis[TZ_MAX_TYPES];
-	char		chars[(TZ_MAX_CHARS + 1 > sizeof GMT) ?
-				TZ_MAX_CHARS + 1 : sizeof GMT];
+	char		chars[BIGGEST(BIGGEST(TZ_MAX_CHARS + 1, sizeof GMT),
+				(2 * (MY_TZNAME_MAX + 1)))];
 	struct lsinfo	lsis[TZ_MAX_LEAPS];
 };
 
@@ -82,9 +92,9 @@ struct rule {
 	long		r_time;		/* transition time of rule */
 };
 
-#define	JULIAN_DAY		0	/* Jn - Julian day */
-#define	DAY_OF_YEAR		1	/* n - day of year */
-#define	MONTH_NTH_DAY_OF_WEEK	2	/* Mm.n.d - month, week, day of week */
+#define JULIAN_DAY		0	/* Jn - Julian day */
+#define DAY_OF_YEAR		1	/* n - day of year */
+#define MONTH_NTH_DAY_OF_WEEK	2	/* Mm.n.d - month, week, day of week */
 
 /*
 ** Prototypes for static functions.
@@ -202,7 +212,8 @@ settzname()
 	*/
 	for (i = 0; i < sp->timecnt; ++i) {
 		register const struct ttinfo * const	ttisp =
-							&sp->ttis[sp->types[i]];
+							&sp->ttis[
+								sp->types[i]];
 
 		tzname[ttisp->tt_isdst] =
 			(char *) &sp->chars[ttisp->tt_abbrind];
@@ -704,8 +715,8 @@ const int			lastditch;
 					*atp++ = endtime;
 					*typep++ = 1;	/* DST ends */
 				}
-				janfirst +=
-					year_lengths[isleap(year)] * SECSPERDAY;
+				janfirst += year_lengths[isleap(year)] *
+					SECSPERDAY;
 			}
 		} else {
 			int		sawstd;
@@ -734,8 +745,8 @@ const int			lastditch;
 			for (i = 0; i < sp->typecnt; ++i) {
 				if (sp->ttis[i].tt_isdst) {
 					oldfix = dstfix;
-					dstfix =
-					    sp->ttis[i].tt_gmtoff + dstoffset;
+					dstfix = sp->ttis[i].tt_gmtoff +
+						dstoffset;
 					if (sawdst && (oldfix != dstfix))
 						return -1;
 					sp->ttis[i].tt_gmtoff = -dstoffset;
@@ -743,8 +754,8 @@ const int			lastditch;
 					sawdst = TRUE;
 				} else {
 					oldfix = stdfix;
-					stdfix =
-					    sp->ttis[i].tt_gmtoff + stdoffset;
+					stdfix = sp->ttis[i].tt_gmtoff +
+						stdoffset;
 					if (sawstd && (oldfix != stdfix))
 						return -1;
 					sp->ttis[i].tt_gmtoff = -stdoffset;
@@ -1141,7 +1152,7 @@ int * const	unitsptr;
 const int	base;
 {
 	register int	tensdelta;
-	
+
 	tensdelta = (*unitsptr >= 0) ?
 		(*unitsptr / base) :
 		(-1 - (-1 - *unitsptr) / base);
@@ -1192,6 +1203,11 @@ int * const		okayp;
 		--yourtm.tm_year;
 		yourtm.tm_mday +=
 			year_lengths[isleap(yourtm.tm_year + TM_YEAR_BASE)];
+	}
+	while (yourtm.tm_mday > DAYSPERLYEAR) {
+		yourtm.tm_mday -=
+			year_lengths[isleap(yourtm.tm_year + TM_YEAR_BASE)];
+		++yourtm.tm_year;
 	}
 	for ( ; ; ) {
 		i = mon_lengths[isleap(yourtm.tm_year +
@@ -1384,3 +1400,79 @@ struct tm * const	tmp;
 }
 
 #endif /* defined CMUCS */
+
+/*
+** XXX--is the below the right way to conditionalize??
+*/
+
+#ifdef STD_INSPIRED
+
+/*
+** IEEE Std 1003.1-1988 (POSIX) legislates that 536457599
+** shall correspond to "Wed Dec 31 23:59:59 GMT 1986", which
+** is not the case if we are accounting for leap seconds.
+** So, we provide the following conversion routines for use
+** when exchanging timestamps with POSIX conforming systems.
+*/
+
+static long
+leapcorr(timep)
+time_t *	timep;
+{
+	register struct state *		sp;
+	register struct lsinfo *	lp;
+	register int			i;
+
+	if (!lcl_is_set)
+		(void) tzset();
+	sp = lclptr;
+	i = sp->leapcnt;
+	while (--i >= 0) {
+		lp = &sp->lsis[i];
+		if (*timep >= lp->ls_trans)
+			return lp->ls_corr;
+	}
+	return 0;
+}
+
+time_t
+time2posix(t)
+time_t	t;
+{
+	return t - leapcorr(&t);
+}
+
+time_t
+posix2time(t)
+time_t	t;
+{
+	time_t	x;
+	time_t	y;
+
+	/*
+	** For a positive leap second hit, the result
+	** is not unique.  For a negative leap second
+	** hit, the corresponding time doesn't exist,
+	** so we return an adjacent second.
+	*/
+	x = t + leapcorr(&t);
+	y = x - leapcorr(&x);
+	if (y < t) {
+		do {
+			x++;
+			y = x - leapcorr(&x);
+		} while (y < t);
+		if (t != y)
+			return x - 1;
+	} else if (y > t) {
+		do {
+			--x;
+			y = x - leapcorr(&x);
+		} while (y > t);
+		if (t != y)
+			return x + 1;
+	}
+	return x;
+}
+
+#endif /* defined STD_INSPIRED */

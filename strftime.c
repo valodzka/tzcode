@@ -1,8 +1,8 @@
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)strftime.c	7.15";
+static char	elsieid[] = "@(#)strftime.c	7.17";
 /*
-** Based on the UCB version whose ID appears below.
+** Based on the UCB version with the ID appearing below.
 ** This is ANSIish only when time is treated identically in all locales and
 ** when "multibyte character == plain character".
 */
@@ -25,9 +25,11 @@ static char	elsieid[] = "@(#)strftime.c	7.15";
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#if defined(LIBC_SCCS) && !defined(lint)
+#ifndef LIBC_SCCS
+#ifndef lint
 static const char sccsid[] = "@(#)strftime.c	5.4 (Berkeley) 3/14/89";
-#endif /* LIBC_SCCS and not lint */
+#endif /* !defined lint */
+#endif /* !defined LIBC_SCCS */
 
 #include "private.h"
 #include "tzfile.h"

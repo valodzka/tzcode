@@ -1,6 +1,6 @@
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)zdump.c	7.8";
+static char	elsieid[] = "@(#)zdump.c	7.9";
 #endif /* !defined NOID */
 #endif /* !defined lint */
 
@@ -110,11 +110,11 @@ char *	argv[];
 			vflag = 1;
 		else	cutoff = optarg;
 	if (c != EOF ||
-	   (optind == argc - 1 && strcmp(argv[optind], "=") == 0)) {
-		(void) fprintf(stderr,
-			"%s: usage is %s [ -v ] [ -c cutoff ] zonename ...\n",
-			argv[0], argv[0]);
-		(void) exit(EXIT_FAILURE);
+		(optind == argc - 1 && strcmp(argv[optind], "=") == 0)) {
+			(void) fprintf(stderr,
+"%s: usage is %s [ -v ] [ -c cutoff ] zonename ...\n",
+				argv[0], argv[0]);
+			(void) exit(EXIT_FAILURE);
 	}
 	if (cutoff != NULL) {
 		int	y;

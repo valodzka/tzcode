@@ -16,7 +16,7 @@
 
 #ifndef lint
 #ifndef NOID
-static char	tzfilehid[] = "@(#)tzfile.h	7.2";
+static char	tzfilehid[] = "@(#)tzfile.h	7.4";
 #endif /* !defined NOID */
 #endif /* !defined lint */
 
@@ -86,8 +86,9 @@ struct tzhead {
 
 #ifndef TZ_MAX_TYPES
 #ifndef NOSOLAR
-#define TZ_MAX_TYPES	256	/* Limited by what (unsigned char)'s can hold */
-#else /* !defined NOSOLAR */
+#define TZ_MAX_TYPES	256 /* Limited by what (unsigned char)'s can hold */
+#endif /* !defined NOSOLAR */
+#ifdef NOSOLAR
 #define TZ_MAX_TYPES	10	/* Maximum number of local time types */
 #endif /* !defined NOSOLAR */
 #endif /* !defined TZ_MAX_TYPES */
@@ -98,7 +99,7 @@ struct tzhead {
 #endif /* !defined TZ_MAX_CHARS */
 
 #ifndef TZ_MAX_LEAPS
-#define	TZ_MAX_LEAPS	50	/* Maximum number of leap second corrections */
+#define TZ_MAX_LEAPS	50	/* Maximum number of leap second corrections */
 #endif /* !defined TZ_MAX_LEAPS */
 
 #define SECSPERMIN	60

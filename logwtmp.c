@@ -1,7 +1,7 @@
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)logwtmp.c	7.1";
-/* As received from UCB, with include file reordering and OLD_TIME condition. */
+static char	elsieid[] = "@(#)logwtmp.c	7.3";
+/* As received from UCB, with include reordering and OLD_TIME condition. */
 #endif /* !defined NOID */
 #endif /* !defined lint */
 
@@ -37,7 +37,7 @@ static char sccsid[] = "@(#)logwtmp.c	5.2 (Berkeley) 9/20/88";
 #include <sys/time.h>
 #include <sys/stat.h>
 
-#define	WTMPFILE	"/usr/adm/wtmp"
+#define WTMPFILE	"/usr/adm/wtmp"
 
 logwtmp(line, name, host)
 	char *line, *name, *host;
@@ -56,8 +56,8 @@ logwtmp(line, name, host)
 		(void)strncpy(ut.ut_host, host, sizeof(ut.ut_host));
 		(void)time(&ut.ut_time);
 		if (write(fd, (char *)&ut, sizeof(struct utmp)) !=
-		    sizeof(struct utmp))
-			(void)ftruncate(fd, buf.st_size);
+			sizeof(struct utmp))
+				(void)ftruncate(fd, buf.st_size);
 	}
 	(void)close(fd);
 }

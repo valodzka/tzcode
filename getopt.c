@@ -1,7 +1,7 @@
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)getopt.c	7.1";
-/* Modified from the UCB version whose SCCS ID appears below. */
+static char	elsieid[] = "@(#)getopt.c	7.3";
+/* Modified from the UCB version with the SCCS ID appearing below. */
 #endif /* !defined NOID */
 #endif /* !defined lint */
 
@@ -58,18 +58,18 @@ getopt(nargc, nargv, ostr)
 
 	if (!*place) {				/* update scanning pointer */
 		if (optind >= nargc || *(place = nargv[optind]) != '-' ||
-		    !*++place)
-			return(EOF);
+			!*++place)
+				return(EOF);
 		if (*place == '-') {		/* found "--" */
 			++optind;
 			return(EOF);
 		}
 	}					/* option letter okay? */
 	if ((optopt = (int)*place++) == (int)':' ||
-	    !(oli = strchr(ostr, optopt))) {
-		if (!*place)
-			++optind;
-		tell(": illegal option -- ");
+		!(oli = strchr(ostr, optopt))) {
+			if (!*place)
+				++optind;
+			tell(": illegal option -- ");
 	}
 	if (*++oli != ':') {			/* don't need argument */
 		optarg = NULL;
