@@ -1,4 +1,4 @@
-static char	elsieid[] = "@(#)zdump.c	7.68";
+static char	elsieid[] = "@(#)zdump.c	7.70";
 
 /*
 ** This code has been made independent of the rest of the time
@@ -12,6 +12,10 @@ static char	elsieid[] = "@(#)zdump.c	7.68";
 #include "time.h"	/* for struct tm */
 #include "stdlib.h"	/* for exit, malloc, atoi */
 #include "float.h"	/* for FLT_MAX and DBL_MAX */
+#include "ctype.h"	/* for isalpha et al. */
+#ifndef isascii
+#define isascii(x) 1
+#endif
 
 #ifndef ZDUMP_LO_YEAR
 #define ZDUMP_LO_YEAR	(-500)
@@ -509,7 +513,7 @@ time_t	hit;
 }
 
 /*
-** Thanks to Paul Eggert (eggert@twinsun.com) for logic used in delta.
+** Thanks to Paul Eggert for logic used in delta.
 */
 
 static long
