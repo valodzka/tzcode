@@ -1,4 +1,4 @@
-static char	elsieid[] = "@(#)zdump.c	7.70";
+static char	elsieid[] = "@(#)zdump.c	7.72";
 
 /*
 ** This code has been made independent of the rest of the time
@@ -209,7 +209,7 @@ const char * const	zone;
 		return;
 	cp = abbrp;
 	wp = NULL;
-	while (isascii(*cp) && isalpha(*cp))
+	while (isascii((unsigned char) *cp) && isalpha((unsigned char) *cp))
 		++cp;
 	if (cp - abbrp == 0)
 		wp = _("lacks alphabetic at start");
@@ -219,9 +219,10 @@ const char * const	zone;
 		wp = _("has more than 6 alphabetics");
 	if (wp == NULL && (*cp == '+' || *cp == '-')) {
 		++cp;
-		if (isascii(*cp) && isdigit(*cp))
-			if (*cp++ == '1' && *cp >= '0' && *cp <= '4')
-				++cp;
+		if (isascii((unsigned char) *cp) &&
+			isdigit((unsigned char) *cp))
+				if (*cp++ == '1' && *cp >= '0' && *cp <= '4')
+					++cp;
 	}
 	if (*cp != '\0')
 		wp = _("differs from POSIX standard");
@@ -269,7 +270,7 @@ char *	argv[];
 	for (i = 1; i < argc; ++i)
 		if (strcmp(argv[i], "--version") == 0) {
 			(void) printf("%s\n", elsieid);
-			(void) exit(EXIT_SUCCESS);
+			exit(EXIT_SUCCESS);
 		}
 	vflag = 0;
 	cutarg = NULL;
@@ -282,7 +283,7 @@ char *	argv[];
 			(void) fprintf(stderr,
 _("%s: usage is %s [ --version ] [ -v ] [ -c [loyear,]hiyear ] zonename ...\n"),
 				progname, progname);
-			(void) exit(EXIT_FAILURE);
+			exit(EXIT_FAILURE);
 	}
 	if (vflag) {
 		if (cutarg != NULL) {
@@ -299,7 +300,7 @@ _("%s: usage is %s [ --version ] [ -v ] [ -c [loyear,]hiyear ] zonename ...\n"),
 			} else {
 (void) fprintf(stderr, _("%s: wild -c argument %s\n"),
 					progname, cutarg);
-				(void) exit(EXIT_FAILURE);
+				exit(EXIT_FAILURE);
 			}
 		}
 		setabsolutes();
@@ -322,7 +323,7 @@ _("%s: usage is %s [ --version ] [ -v ] [ -c [loyear,]hiyear ] zonename ...\n"),
 		if (fakeenv == NULL ||
 			(fakeenv[0] = (char *) malloc(longest + 4)) == NULL) {
 					(void) perror(progname);
-					(void) exit(EXIT_FAILURE);
+					exit(EXIT_FAILURE);
 		}
 		to = 0;
 		(void) strcpy(fakeenv[to++], "TZ=");
@@ -389,7 +390,7 @@ _("%s: usage is %s [ --version ] [ -v ] [ -c [loyear,]hiyear ] zonename ...\n"),
 	if (fflush(stdout) || ferror(stdout)) {
 		(void) fprintf(stderr, "%s: ", progname);
 		(void) perror(_("Error writing standard output"));
-		(void) exit(EXIT_FAILURE);
+		exit(EXIT_FAILURE);
 	}
 	exit(EXIT_SUCCESS);
 	/* If exit fails to exit... */
@@ -413,7 +414,7 @@ setabsolutes()
 			(void) fprintf(stderr,
 _("%s: use of -v on system with floating time_t other than float or double\n"),
 				progname);
-			(void) exit(EXIT_FAILURE);
+			exit(EXIT_FAILURE);
 		}
 	} else if (0 > (time_t) -1) {
 		/*
