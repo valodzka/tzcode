@@ -1,4 +1,4 @@
-static char	elsieid[] = "@(#)zdump.c	7.72";
+static char	elsieid[] = "@(#)zdump.c	7.74";
 
 /*
 ** This code has been made independent of the rest of the time
@@ -213,9 +213,9 @@ const char * const	zone;
 		++cp;
 	if (cp - abbrp == 0)
 		wp = _("lacks alphabetic at start");
-	if (cp - abbrp < 3)
+	else if (cp - abbrp < 3)
 		wp = _("has fewer than 3 alphabetics");
-	if (cp - abbrp > 6)
+	else if (cp - abbrp > 6)
 		wp = _("has more than 6 alphabetics");
 	if (wp == NULL && (*cp == '+' || *cp == '-')) {
 		++cp;
@@ -223,9 +223,9 @@ const char * const	zone;
 			isdigit((unsigned char) *cp))
 				if (*cp++ == '1' && *cp >= '0' && *cp <= '4')
 					++cp;
+		if (*cp != '\0')
+			wp = _("differs from POSIX standard");
 	}
-	if (*cp != '\0')
-		wp = _("differs from POSIX standard");
 	if (wp == NULL)
 		return;
 	(void) fflush(stdout);
