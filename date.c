@@ -1,6 +1,6 @@
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)date.c	7.45";
+static char	elsieid[] = "@(#)date.c	8.1";
 /*
 ** Modified from the UCB version with the SCCS ID appearing below.
 */

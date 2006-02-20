@@ -1,35 +1,29 @@
-#
+#ifndef lint
+#ifndef NOID
+static char	elsieid[] = "@(#)scheck.c	8.18";
+#endif /* !defined lint */
+#endif /* !defined NOID */
 
 /*LINTLIBRARY*/
 
-#include "stdio.h"
+#include "private.h"
 
-#ifndef lint
-#ifndef NOID
-static char	sccsid[] = "@(#)scheck.c	7.15";
-#endif /* !NOID */
-#endif /* !lint */
-
-#include "ctype.h"
-
-extern char *	imalloc();
-
-char *
+const char *
 scheck(string, format)
-char *	string;
-char *	format;
+const char * const	string;
+const char * const	format;
 {
-	register char *	fbuf;
-	register char *	fp;
-	register char *	tp;
-	register int	c;
-	register char *	result;
-	char		dummy;
+	register char *		fbuf;
+	register const char *	fp;
+	register char *		tp;
+	register int		c;
+	register const char *	result;
+	char			dummy;
 
 	result = "";
 	if (string == NULL || format == NULL)
 		return result;
-	fbuf = imalloc(2 * strlen(format) + 4);
+	fbuf = imalloc((int) (2 * strlen(format) + 4));
 	if (fbuf == NULL)
 		return result;
 	fp = format;
@@ -44,7 +38,7 @@ char *	format;
 		*tp++ = '*';
 		if (*fp == '*')
 			++fp;
-		while (isascii(*fp) && isdigit(*fp))
+		while (is_digit(*fp))
 			*tp++ = *fp++;
 		if (*fp == 'l' || *fp == 'h')
 			*tp++ = *fp++;
@@ -58,7 +52,7 @@ char *	format;
 	*tp++ = 'c';
 	*tp = '\0';
 	if (sscanf(string, fbuf, &dummy) != 1)
-		result = format;
-	free(fbuf);
+		result = (char *) format;
+	ifree(fbuf);
 	return result;
 }
