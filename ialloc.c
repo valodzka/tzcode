@@ -1,81 +1,99 @@
-#ifndef lint
-#ifndef NOID
-static char	elsieid[] = "@(#)ialloc.c	8.29";
-#endif /* !defined NOID */
-#endif /* !defined lint */
+#
 
 /*LINTLIBRARY*/
 
-#include "private.h"
+#include "stdio.h"
 
-#define nonzero(n)	(((n) == 0) ? 1 : (n))
+#ifndef lint
+#ifndef NOID
+static char	sccsid[] = "@(#)ialloc.c	7.14";
+#endif /* !NOID */
+#endif /* !lint */
+
+#ifndef alloc_t
+#define alloc_t	unsigned
+#endif /* !alloc_t */
+
+#ifdef MAL
+#define NULLMAL(x)	((x) == NULL || (x) == MAL)
+#else /* !MAL */
+#define NULLMAL(x)	((x) == NULL)
+#endif /* !MAL */
+
+extern char *	calloc();
+extern char *	malloc();
+extern char *	realloc();
+extern char *	strcpy();
 
 char *
 imalloc(n)
-const int	n;
 {
-	return malloc((size_t) nonzero(n));
+#ifdef MAL
+	register char *	result;
+
+	if (n == 0)
+		n = 1;
+	result = malloc((alloc_t) n);
+	return (result == MAL) ? NULL : result;
+#else /* !MAL */
+	if (n == 0)
+		n = 1;
+	return malloc((alloc_t) n);
+#endif /* !MAL */
 }
 
 char *
 icalloc(nelem, elsize)
-int	nelem;
-int	elsize;
 {
 	if (nelem == 0 || elsize == 0)
 		nelem = elsize = 1;
-	return calloc((size_t) nelem, (size_t) elsize);
+	return calloc((alloc_t) nelem, (alloc_t) elsize);
 }
 
-void *
+char *
 irealloc(pointer, size)
-void * const	pointer;
-const int	size;
+char *	pointer;
 {
-	if (pointer == NULL)
+	if (NULLMAL(pointer))
 		return imalloc(size);
-	return realloc((void *) pointer, (size_t) nonzero(size));
+	if (size == 0)
+		size = 1;
+	return realloc(pointer, (alloc_t) size);
 }
 
 char *
 icatalloc(old, new)
-char * const		old;
-const char * const	new;
+char *	old;
+char *	new;
 {
 	register char *	result;
-	register int	oldsize, newsize;
+	register	oldsize, newsize;
 
-	newsize = (new == NULL) ? 0 : strlen(new);
-	if (old == NULL)
-		oldsize = 0;
-	else if (newsize == 0)
-		return old;
-	else	oldsize = strlen(old);
+	oldsize = NULLMAL(old) ? 0 : strlen(old);
+	newsize = NULLMAL(new) ? 0 : strlen(new);
 	if ((result = irealloc(old, oldsize + newsize + 1)) != NULL)
-		if (new != NULL)
+		if (!NULLMAL(new))
 			(void) strcpy(result + oldsize, new);
 	return result;
 }
 
 char *
 icpyalloc(string)
-const char * const	string;
+char *	string;
 {
 	return icatalloc((char *) NULL, string);
 }
 
-void
 ifree(p)
-char * const	p;
+char *	p;
 {
-	if (p != NULL)
-		(void) free(p);
+	if (!NULLMAL(p))
+		free(p);
 }
 
-void
 icfree(p)
-char * const	p;
+char *	p;
 {
-	if (p != NULL)
-		(void) free(p);
+	if (!NULLMAL(p))
+		free(p);
 }

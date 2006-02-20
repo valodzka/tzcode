@@ -5,7 +5,7 @@
 
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)localtime.c	7.97";
+static char	elsieid[] = "@(#)localtime.c	7.99";
 #endif /* !defined NOID */
 #endif /* !defined lint */
 
@@ -510,9 +510,13 @@ register const char *	strp;
 */
 
 static const char *
+#if __STDC__
+getqzname(register const char *strp, const char delim)
+#else /* !__STDC__ */
 getqzname(strp, delim)
 register const char *	strp;
 const char		delim;
+#endif /* !__STDC__ */
 {
 	register char	c;
 
