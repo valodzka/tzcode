@@ -5,7 +5,7 @@
 
 #ifndef lint
 #ifndef NOID
-static char	elsieid[] = "@(#)localtime.c	8.1";
+static char	elsieid[] = "@(#)localtime.c	8.3";
 #endif /* !defined NOID */
 #endif /* !defined lint */
 
@@ -602,13 +602,7 @@ register const char *	strp;
 */
 
 static const char *
-#if __STDC__
 getqzname(register const char *strp, const int delim)
-#else /* !__STDC__ */
-getqzname(strp, delim)
-register const char *	strp;
-const int		delim;
-#endif /* !__STDC__ */
 {
 	register int	c;
 
@@ -1263,10 +1257,17 @@ struct tm * const	tmp;
 				break;
 			}
 	} else {
-		for (i = 1; i < sp->timecnt; ++i)
-			if (t < sp->ats[i])
-				break;
-		i = (int) sp->types[i - 1];
+		register int	lo = 1;
+		register int	hi = sp->timecnt;
+
+		while (lo < hi) {
+			register int	mid = (lo + hi) >> 1;
+
+			if (t < sp->ats[mid])
+				hi = mid;
+			else	lo = mid + 1;
+		}
+		i = (int) sp->types[lo - 1];
 	}
 	ttisp = &sp->ttis[i];
 	/*
