@@ -3,7 +3,7 @@
 ** 2006-07-17 by Arthur David Olson.
 */
 
-static char	elsieid[] = "@(#)zic.c	8.8";
+static char	elsieid[] = "@(#)zic.c	8.9";
 
 #include "private.h"
 #include "locale.h"
@@ -2451,9 +2451,12 @@ register char *	cp;
 			else while ((*dp = *cp++) != '"')
 				if (*dp != '\0')
 					++dp;
-				else	error(_(
+				else {
+					error(_(
 						"Odd number of quotation marks"
 						));
+					exit(1);
+				}
 		} while (*cp != '\0' && *cp != '#' &&
 			(!isascii(*cp) || !isspace((unsigned char) *cp)));
 		if (isascii(*cp) && isspace((unsigned char) *cp))
