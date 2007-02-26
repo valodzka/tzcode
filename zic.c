@@ -3,7 +3,7 @@
 ** 2006-07-17 by Arthur David Olson.
 */
 
-static char	elsieid[] = "@(#)zic.c	8.9";
+static char	elsieid[] = "@(#)zic.c	8.10";
 
 #include "private.h"
 #include "locale.h"
@@ -2644,7 +2644,7 @@ wp = _("time zone abbreviation differs from POSIX standard");
 
 static int
 mkdirs(argname)
-char * const	argname;
+char *		argname;
 {
 	register char *	name;
 	register char *	cp;
